@@ -129,7 +129,6 @@ namespace ATMPro {
             while ((Time.time - startTime) * 1000 < time && !atmp.actionTokenSource.IsCancellationRequested) {
                 yield return null;
             }
-            Debug.Log("???");
             /*yield return new WaitForSeconds(time * 0.001f);*/
         }
 

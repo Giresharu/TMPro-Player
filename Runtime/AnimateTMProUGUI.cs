@@ -24,10 +24,10 @@ namespace ATMPro {
         int visibleCount;
 
         public CancellationTokenSource actionTokenSource;
-        public CancellationTokenSource typeWriterTokenSource;
+        CancellationTokenSource typeWriterTokenSource;
 
         Queue<RichTagInfo> richTags = new Queue<RichTagInfo>();
-
+        
         Action test;
 
         void OnEnable() {
@@ -90,6 +90,7 @@ namespace ATMPro {
 
             typeWriterTokenSource.Cancel();
             typeWriterTokenSource.Dispose();
+            typeWriterTokenSource = new CancellationTokenSource();
 
             textMeshPro.maxVisibleCharacters = textMeshPro.textInfo.characterCount;
         }
@@ -108,19 +109,23 @@ namespace ATMPro {
                 tuple.actionInfo.Invoke(this, pairedActions[tuple], tuple.value);
 
             if (typeWriter) {
-                typeWriterQueue.Enqueue(TypeWriter());
+                typeWriterTokenSource?.Cancel();
+                typeWriterTokenSource?.Dispose();
+
+                typeWriterTokenSource = new CancellationTokenSource();
+                typeWriterQueue.Enqueue(TypeWriter(typeWriterTokenSource.Token));
                 if (typeWriterQueue.Count == 1)
-                    StartCoroutine(TypeWriterProcess());
+                    StartCoroutine(TypeWriterProcess(typeWriterTokenSource.Token));
             } else {
                 typeWriterQueue.Clear();
                 Skip();
             }
         }
 
-        IEnumerator TypeWriter() {
+        IEnumerator TypeWriter(CancellationToken token) {
 
             // int index = 0;
-            while (visibleCount < textMeshPro.textInfo.characterCount + 1 && !typeWriterTokenSource.IsCancellationRequested) {
+            while (visibleCount < textMeshPro.textInfo.characterCount + 1 && !token.IsCancellationRequested) {
                 if (!isActiveAndEnabled) {
                     yield return null;
 
@@ -139,7 +144,7 @@ namespace ATMPro {
                     for (int index = 0; index < tuples.Count; index++) {
                         // 排队进行打字机效果的过程中如果非增量而切换到下一句时，会刷新掉所有 singleActions
                         // 应该终止整个携程
-                        if (typeWriterTokenSource.IsCancellationRequested)
+                        if (token.IsCancellationRequested)
                             break;
 
                         yield return tuples[index].actionInfo.Invoke(this, tuples[index].value);
@@ -155,13 +160,13 @@ namespace ATMPro {
             }
         }
 
-        IEnumerator TypeWriterProcess() {
+        IEnumerator TypeWriterProcess(CancellationToken token) {
 
-            typeWriterTokenSource?.Cancel();
+            /*typeWriterTokenSource?.Cancel();
             typeWriterTokenSource?.Dispose();
-            typeWriterTokenSource = new CancellationTokenSource();
+            typeWriterTokenSource = new CancellationTokenSource();*/
 
-            while (typeWriterQueue.Count > 0 && !typeWriterTokenSource.IsCancellationRequested) {
+            while (typeWriterQueue.Count > 0 && !token.IsCancellationRequested) {
                 var writer = typeWriterQueue.Dequeue();
                 yield return StartCoroutine(writer);
             }
