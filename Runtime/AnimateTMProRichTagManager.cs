@@ -8,7 +8,6 @@ using UnityEngine;
 using Random = UnityEngine.Random;
 
 namespace ATMPro {
-    // BUG 连续添加addtive会导致delay变得超短的问题
 
     public class AnimateTMProRichTagManager : MonoBehaviour {
 
@@ -32,10 +31,10 @@ namespace ATMPro {
             actionInfos.Clear();
 
             // 包含闭合标签的范围性动作，是播放文字的开头触发的，所以使用协程
-            SetActionInfo(args => StartCoroutine(Shake((AnimateTMProUGUI)args[0], (float)args[1], (float)args[2], (float)args[3], (List<(int, int)>)args[4])), "Shake", true, "shake", "Shake", "s", "S");
-            SetActionInfo(args => StartCoroutine(Delay((AnimateTMProUGUI)args[0], (int)args[1], (List<(int, int)>)args[2])), "Delay", true, "delay", "Delay", "d", "D");
+            SetActionInfo(args => StartCoroutine(Shake((AnimateTMProUGUI)args[0], (float)args[1], (float)args[2], (float)args[3], (CancellationToken)args[4], (List<(int, int)>)args[5])), "Shake", true, "shake", "Shake", "s", "S");
+            SetActionInfo(args => StartCoroutine(Delay((AnimateTMProUGUI)args[0], (int)args[1], (List<(int, int)>)args[2], (CancellationToken)args[3])), "Delay", true, "delay", "Delay", "d", "D");
 
-            SetActionInfo(args => Pause((int)args[0]), "Pause", false, "pause", "Pause", "p", "P");
+            SetActionInfo(args => Pause((int)args[0], (CancellationToken)args[1]), "Pause", false, "pause", "Pause", "p", "P");
         }
 
         /*void SetActionInfo(Action<object[]> action, string methodName, bool needClosingTag, params string[] keys) {
@@ -127,11 +126,11 @@ namespace ATMPro {
         /* --- Action Region --- */
     #region Action Region
         static IEnumerator Pause(int time = 500, CancellationToken token = default) {
-            /*float startTime = Time.time;
+            float startTime = Time.time;
             while ((Time.time - startTime) * 1000 < time && !token.IsCancellationRequested) {
                 yield return null;
-            }*/
-            yield return new WaitForSeconds(time * 0.001f);
+            }
+            // yield return new WaitForSeconds(time * 0.001f);
         }
 
         static IEnumerator Delay(AnimateTMProUGUI atmp, int time = 50, List<(int start, int end)> ranges = null, CancellationToken token = default) {
@@ -171,15 +170,16 @@ namespace ATMPro {
                 // Debug.Log(index + " : " + atmp.textMeshPro.textInfo.characterInfo[index].character);
                 atmp.delay = indexInRange.Contains(index) ? time : atmp.defaultDelay;
 
-                /*yield return Pause(atmp.delay, token);*/
-                yield return new WaitForSeconds(atmp.delay * 0.001f);
+                yield return null;
+                // yield return Pause(atmp.delay, token);
+                // yield return new WaitForSeconds(atmp.delay * 0.001f);
             }
 
         }
 
 
 
-        static IEnumerator Shake(AnimateTMProUGUI atmp, float frequency = 15f, float amplitude = 1f, float phaseshift = 10f, List<(int start, int end)> ranges = null, CancellationToken token = default) {
+        static IEnumerator Shake(AnimateTMProUGUI atmp, float frequency = 15f, float amplitude = 1f, float phaseshift = 10f, CancellationToken token = default, List<(int start, int end)> ranges = null) {
 
             TMP_TextInfo textInfo = atmp.textMeshPro.textInfo;
             TMP_MeshInfo[] cachedMeshInfo = textInfo.CopyMeshInfoVertexData();
@@ -205,7 +205,7 @@ namespace ATMPro {
 
             List<int> indexInRange = IndicesInRange(textInfo, ranges);
 
-            while ( /*!atmp.actionTokenSource.IsCancellationRequested*/true) {
+            while (!token.IsCancellationRequested) {
 
                 if (atmp.hasTextChanged) {
                     cachedMeshInfo = textInfo.CopyMeshInfoVertexData();
@@ -213,19 +213,15 @@ namespace ATMPro {
                 }
 
                 // 当 disable 时暂停本协程
-                if ( /*!atmp.isActiveAndEnabled ||*/ textInfo.characterCount == 0) {
+                if (!atmp.isActiveAndEnabled || textInfo.characterCount == 0) {
                     yield return null;
-
                     continue;
                 }
 
-
-                // 避免无意义的遍历，让 token 取消时不再遍历
                 foreach (int i in indexInRange) {
 
-                    if (ranges == null) {
+                    if (ranges == null || token.IsCancellationRequested)
                         break;
-                    }
 
                     TMP_CharacterInfo characterInfo = textInfo.characterInfo[i];
                     if (!characterInfo.isVisible) continue;
@@ -260,11 +256,9 @@ namespace ATMPro {
                     angle = Random.value * 2f * Mathf.PI;
                     startTime = Time.time;
                 }
-
                 yield return null;
             }
-            Debug.Log("真的取消了！");
-        }   
+        }
     #endregion
 
     }
@@ -274,7 +268,7 @@ namespace ATMPro {
         readonly object[] defaultArgValues;
         internal bool IsPaired { get; }
 
-        readonly bool needAnimateTMPro;
+        // readonly bool needAnimateTMPro;
         readonly Action<object[]> action;
         readonly Func<object[], IEnumerator> func;
 
@@ -288,8 +282,8 @@ namespace ATMPro {
             for (int i = 0; i < parameterInfos.Length; i++) {
                 argTypes[i] = parameterInfos[i].ParameterType;
                 defaultArgValues[i] = parameterInfos[i].HasDefaultValue ? parameterInfos[i].DefaultValue : null;
-                if (i == 0)
-                    needAnimateTMPro = argTypes[0] == typeof(AnimateTMProUGUI);
+                /*if (i == 0)
+                    needAnimateTMPro = argTypes[0] == typeof(AnimateTMProUGUI);*/
             }
 
         }
@@ -305,18 +299,18 @@ namespace ATMPro {
             for (int i = 0; i < parameterInfos.Length; i++) {
                 argTypes[i] = parameterInfos[i].ParameterType;
                 defaultArgValues[i] = parameterInfos[i].HasDefaultValue ? parameterInfos[i].DefaultValue : null;
-                if (i == 0)
-                    needAnimateTMPro = argTypes[0] == typeof(AnimateTMProUGUI);
+                /*if (i == 0)
+                    needAnimateTMPro = argTypes[0] == typeof(AnimateTMProUGUI);*/
             }
 
         }
 
-        IEnumerator Invoke(params string[] argStrings) {
+        /*IEnumerator Invoke(params string[] argStrings) {
             object[] args = new object[argTypes.Length];
             for (int i = 0; i < argTypes.Length; i++) {
                 // 转换标签填写时提供的参数
                 if (i < argStrings.Length) {
-                    //TODO 改成手动分辨基本类型
+
                     args[i] = Convert.ChangeType(argStrings[i], argTypes[i]);
                 } else {
                     // 没有填写的参数使用函数的默认值
@@ -329,49 +323,62 @@ namespace ATMPro {
             action.Invoke(args);
             return null;
 
-        }
-
-
-        internal IEnumerator Invoke(AnimateTMProUGUI atmp, params string[] argStrings) {
+        }*/
+        /*internal IEnumerator Invoke(AnimateTMProUGUI atmp, CancellationToken token, params string[] argStrings) {
             if (!needAnimateTMPro)
                 return Invoke(argStrings);
 
             object[] args = new object[argTypes.Length];
-            args[0] = atmp;
-            for (var i = 1; i < argTypes.Length; i++) {
-                if (i < argStrings.Length + 1) {
-                    //TODO 改成手动分辨基本类型
-                    args[i] = Convert.ChangeType(argStrings[i - 1], argTypes[i]);
+
+            int offset = 0;
+            for (var i = 0; i < argTypes.Length; i++) {
+
+                if (argTypes[i] == typeof(AnimateTMProUGUI)) {
+                    args[i] = atmp;
+                    offset++;
+                } else if (argTypes[i] == typeof(CancellationToken)) {
+                    args[i] = token;
+                    offset++;
+                } else if (i < argStrings.Length + offset) {
+
+                    args[i] = Convert.ChangeType(argStrings[i - offset], argTypes[i]);
                 } else {
                     args[i] = defaultArgValues[i];
                 }
             }
-            args[^1] = atmp.actionTokenSource.Token;
-            
             if (action == null) return func.Invoke(args);
 
-            // TODO 把token生成到args里给action
+            // 把token生成到args里给action
+            // args[^1] = atmp.actionTokenSource.Token;
             action.Invoke(args);
             return null;
-        }
+        }*/
 
-        internal IEnumerator Invoke(AnimateTMProUGUI atmp, List<(int, int)> range, params string[] argStrings) {
-            if (!needAnimateTMPro)
-                return Invoke(argStrings);
+        internal IEnumerator Invoke(AnimateTMProUGUI atmp, CancellationToken token, List<(int, int)> range, params string[] argStrings) {
+            /*if (!needAnimateTMPro)
+                return Invoke(argStrings);*/
 
             object[] args = new object[argTypes.Length];
-            args[0] = atmp;
-            for (var i = 1; i < argTypes.Length; i++) {
-                if (i < argStrings.Length + 1) {
-                    // TODO 改成手动分辨基本类型
-                    args[i] = Convert.ChangeType(argStrings[i - 1], argTypes[i]);
+
+            int offset = 0;
+            for (int i = 0; i < argTypes.Length; i++) {
+
+                if (argTypes[i] == typeof(AnimateTMProUGUI)) {
+                    args[i] = atmp;
+                    offset++;
+                } else if (argTypes[i] == typeof(CancellationToken)) {
+                    args[i] = token;
+                    offset++;
+                } else if (argTypes[i] == typeof(List<(int, int)>)) {
+                    args[i] = range;
+                    offset++;
+                } else if (i < argStrings.Length + offset) {
+                    //TODO 改成手动分辨基本类型
+                    args[i] = Convert.ChangeType(argStrings[i - offset], argTypes[i]);
                 } else {
                     args[i] = defaultArgValues[i];
                 }
             }
-            // TODO 太丑陋了，可能要思考一下更优雅的写法
-            args[^2] = range;
-            args[^1] = atmp.actionTokenSource.Token;
 
             if (action == null) return func.Invoke(args);
 

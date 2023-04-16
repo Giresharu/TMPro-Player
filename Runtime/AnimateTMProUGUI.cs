@@ -61,6 +61,7 @@ namespace ATMPro {
             if ((TextMeshProUGUI)obj == textMeshPro) hasTextChanged = true;
         }
 
+        // CancellationToken t;
         public void SetText(string text, bool additive = false) {
             if (textMeshPro == null) textMeshPro = GetComponent<TextMeshProUGUI>();
 
@@ -72,18 +73,14 @@ namespace ATMPro {
                 textMeshPro.SetText(text);
 
                 // 初始化actionTokenSource。重开文字的话，把原来的actionTokenSource取消了
-
                 actionTokenSource?.Cancel();
                 actionTokenSource?.Dispose();
 
                 actionTokenSource = new CancellationTokenSource();
-
             } else {
                 (richTags, text) = ValidateRichTags(text, textMeshPro.text.Length);
                 textMeshPro.SetText(textMeshPro.text + text);
                 actionTokenSource ??= new CancellationTokenSource();
-                //BUG 第一 要用 token 不用能 TokenSource来传递给 Action 以及 TypeWriter；
-                //BUG 第二 如果是 成对标签的 Action ，怎么判断是否当前是否增量更新而结束？也许要判断打字机的取消。
             }
 
             PrepareActions(additive);
@@ -112,7 +109,7 @@ namespace ATMPro {
             // 触发成对 Action
 
             foreach ((ActionInfo actionInfo, string[] value) tuple in pairedActions.Keys)
-                tuple.actionInfo.Invoke(this, pairedActions[tuple], tuple.value);
+                tuple.actionInfo.Invoke(this, actionTokenSource.Token, pairedActions[tuple], tuple.value);
 
             if (typeWriterTokenSource is { IsCancellationRequested: false }) {
                 typeWriterTokenSource.Cancel();
@@ -138,15 +135,14 @@ namespace ATMPro {
 
                     continue;
                 }
-
+                //BUG delay设为0的时候 会无视闭合标签，直到下一个pause才恢复默认delay
                 //第一个字（索引0是空气，1是第一个字）之前不等待。
                 if (visibleCount > 1 && ShouldDelay(currentChar) && delay != 0) {
                     // Debug.Log(currentChar + " : " + delay + " s");
-                    /*float startTime = Time.time;
+                    float startTime = Time.time;
                     while ((Time.time - startTime) * 1000 < delay && !token.IsCancellationRequested) {
                         yield return null;
-                    }*/
-                    yield return new WaitForSeconds(delay * 0.001f);
+                    }
                 }
 
                 textMeshPro.maxVisibleCharacters = visibleCount;
@@ -158,7 +154,7 @@ namespace ATMPro {
                         if (token.IsCancellationRequested)
                             break;
 
-                        yield return tuples[index].actionInfo.Invoke(this, tuples[index].value);
+                        yield return tuples[index].actionInfo.Invoke(this, actionTokenSource.Token, null, tuples[index].value);
                     }
                 }
 
