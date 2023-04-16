@@ -24,10 +24,11 @@ namespace ATMPro {
         int visibleCount;
 
         public CancellationTokenSource actionTokenSource;
+
         CancellationTokenSource typeWriterTokenSource;
 
-        Queue<RichTagInfo> richTags = new Queue<RichTagInfo>();
-        
+        Queue<RichTagInfo> richTags;
+
         Action test;
 
         void OnEnable() {
@@ -64,15 +65,19 @@ namespace ATMPro {
             if (textMeshPro == null) textMeshPro = GetComponent<TextMeshProUGUI>();
 
             if (!additive) {
-                visibleCount = 0;
-                textMeshPro.maxVisibleCharacters = 0; // 因为打字机携程无法判断是否增量更新，所以初始化要放到这里
+                // visibleCount = 0;
+                textMeshPro.maxVisibleCharacters = visibleCount = 0; // 因为打字机携程无法判断是否增量更新，所以初始化要放到这里
 
                 (richTags, text) = ValidateRichTags(text);
                 textMeshPro.SetText(text);
-                // 重开文字的话，把原来的actionTokenSource取消了
+
+                // 初始化actionTokenSource。重开文字的话，把原来的actionTokenSource取消了
+
                 actionTokenSource?.Cancel();
                 actionTokenSource?.Dispose();
+
                 actionTokenSource = new CancellationTokenSource();
+
             } else {
                 (richTags, text) = ValidateRichTags(text, textMeshPro.text.Length);
                 textMeshPro.SetText(textMeshPro.text + text);
@@ -90,35 +95,37 @@ namespace ATMPro {
 
             typeWriterTokenSource.Cancel();
             typeWriterTokenSource.Dispose();
-            typeWriterTokenSource = new CancellationTokenSource();
 
-            textMeshPro.maxVisibleCharacters = textMeshPro.textInfo.characterCount;
+            textMeshPro.maxVisibleCharacters = visibleCount = textMeshPro.textInfo.characterCount;
         }
 
         [HideInInspector] public TextMeshProUGUI textMeshPro;
         [HideInInspector] public bool hasTextChanged;
         [HideInInspector] public int delay;
         [HideInInspector] public char currentChar, lastChar, nextChar;
+
         void ShowText() {
             // 初始化
             textMeshPro.ForceMeshUpdate();
             delay = defaultDelay;
 
             // 触发成对 Action
+
             foreach ((ActionInfo actionInfo, string[] value) tuple in pairedActions.Keys)
                 tuple.actionInfo.Invoke(this, pairedActions[tuple], tuple.value);
 
-            if (typeWriter) {
-                typeWriterTokenSource?.Cancel();
-                typeWriterTokenSource?.Dispose();
+            if (typeWriterTokenSource is { IsCancellationRequested: false }) {
+                typeWriterTokenSource.Cancel();
+                typeWriterTokenSource.Dispose();
+            }
 
-                typeWriterTokenSource = new CancellationTokenSource();
-                typeWriterQueue.Enqueue(TypeWriter(typeWriterTokenSource.Token));
-                if (typeWriterQueue.Count == 1)
-                    StartCoroutine(TypeWriterProcess(typeWriterTokenSource.Token));
+            typeWriterTokenSource = new CancellationTokenSource();
+
+            if (typeWriter) {
+                StartCoroutine(TypeWriter(typeWriterTokenSource.Token));
             } else {
                 typeWriterQueue.Clear();
-                Skip();
+                textMeshPro.maxVisibleCharacters = visibleCount = textMeshPro.textInfo.characterCount;
             }
         }
 
@@ -135,6 +142,10 @@ namespace ATMPro {
                 //第一个字（索引0是空气，1是第一个字）之前不等待。
                 if (visibleCount > 1 && ShouldDelay(currentChar) && delay != 0) {
                     // Debug.Log(currentChar + " : " + delay + " s");
+                    /*float startTime = Time.time;
+                    while ((Time.time - startTime) * 1000 < delay && !token.IsCancellationRequested) {
+                        yield return null;
+                    }*/
                     yield return new WaitForSeconds(delay * 0.001f);
                 }
 
@@ -153,24 +164,11 @@ namespace ATMPro {
 
                 lastChar = currentChar;
                 currentChar = visibleCount != 0 ? textMeshPro.textInfo.characterInfo[visibleCount - 1].character : '\0';
-                nextChar = visibleCount    != textMeshPro.textInfo.characterCount ? textMeshPro.textInfo.characterInfo[visibleCount].character : '\0';
+                nextChar = visibleCount != textMeshPro.textInfo.characterCount ? textMeshPro.textInfo.characterInfo[visibleCount].character : '\0';
 
                 visibleCount++;
                 // yield return null;
             }
-        }
-
-        IEnumerator TypeWriterProcess(CancellationToken token) {
-
-            /*typeWriterTokenSource?.Cancel();
-            typeWriterTokenSource?.Dispose();
-            typeWriterTokenSource = new CancellationTokenSource();*/
-
-            while (typeWriterQueue.Count > 0 && !token.IsCancellationRequested) {
-                var writer = typeWriterQueue.Dequeue();
-                yield return StartCoroutine(writer);
-            }
-            typeWriterQueue.Clear();
         }
 
         bool ShouldDelay(char c) {

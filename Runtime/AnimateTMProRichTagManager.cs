@@ -2,11 +2,13 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Threading;
 using TMPro;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
 namespace ATMPro {
+    // BUG 连续添加addtive会导致delay变得超短的问题
 
     public class AnimateTMProRichTagManager : MonoBehaviour {
 
@@ -33,7 +35,7 @@ namespace ATMPro {
             SetActionInfo(args => StartCoroutine(Shake((AnimateTMProUGUI)args[0], (float)args[1], (float)args[2], (float)args[3], (List<(int, int)>)args[4])), "Shake", true, "shake", "Shake", "s", "S");
             SetActionInfo(args => StartCoroutine(Delay((AnimateTMProUGUI)args[0], (int)args[1], (List<(int, int)>)args[2])), "Delay", true, "delay", "Delay", "d", "D");
 
-            SetActionInfo(args => Pause((AnimateTMProUGUI)args[0],(int)args[1]), "Pause", false, "pause", "Pause", "p", "P");
+            SetActionInfo(args => Pause((int)args[0]), "Pause", false, "pause", "Pause", "p", "P");
         }
 
         /*void SetActionInfo(Action<object[]> action, string methodName, bool needClosingTag, params string[] keys) {
@@ -72,7 +74,7 @@ namespace ATMPro {
             }
 
             ActionInfo actionInfo = new ActionInfo(func, methodInfo, needClosingTag);
-            foreach (var key in keys) {
+            foreach (string key in keys) {
                 instance.actionInfos[key] = actionInfo;
             }
         }
@@ -124,15 +126,15 @@ namespace ATMPro {
 
         /* --- Action Region --- */
     #region Action Region
-        static IEnumerator Pause(AnimateTMProUGUI atmp, int time = 500) {
-            float startTime = Time.time;
-            while ((Time.time - startTime) * 1000 < time && !atmp.actionTokenSource.IsCancellationRequested) {
+        static IEnumerator Pause(int time = 500, CancellationToken token = default) {
+            /*float startTime = Time.time;
+            while ((Time.time - startTime) * 1000 < time && !token.IsCancellationRequested) {
                 yield return null;
-            }
-            /*yield return new WaitForSeconds(time * 0.001f);*/
+            }*/
+            yield return new WaitForSeconds(time * 0.001f);
         }
 
-        static IEnumerator Delay(AnimateTMProUGUI atmp, int time = 50, List<(int start, int end)> ranges = null) {
+        static IEnumerator Delay(AnimateTMProUGUI atmp, int time = 50, List<(int start, int end)> ranges = null, CancellationToken token = default) {
 
             /*List<int> indexInRange = new List<int>();
 
@@ -157,7 +159,7 @@ namespace ATMPro {
             List<int> indexInRange = IndicesInRange(atmp.textMeshPro.textInfo, ranges);
 
             int index = 0;
-            while (!atmp.actionTokenSource.IsCancellationRequested && index < atmp.textMeshPro.textInfo.characterCount) {
+            while (!token.IsCancellationRequested && index < atmp.textMeshPro.textInfo.characterCount) {
                 if (!atmp.isActiveAndEnabled) {
                     yield return null;
 
@@ -169,6 +171,7 @@ namespace ATMPro {
                 // Debug.Log(index + " : " + atmp.textMeshPro.textInfo.characterInfo[index].character);
                 atmp.delay = indexInRange.Contains(index) ? time : atmp.defaultDelay;
 
+                /*yield return Pause(atmp.delay, token);*/
                 yield return new WaitForSeconds(atmp.delay * 0.001f);
             }
 
@@ -176,7 +179,7 @@ namespace ATMPro {
 
 
 
-        static IEnumerator Shake(AnimateTMProUGUI atmp, float frequency = 15f, float amplitude = 1f, float phaseshift = 10f, List<(int start, int end)> ranges = null) {
+        static IEnumerator Shake(AnimateTMProUGUI atmp, float frequency = 15f, float amplitude = 1f, float phaseshift = 10f, List<(int start, int end)> ranges = null, CancellationToken token = default) {
 
             TMP_TextInfo textInfo = atmp.textMeshPro.textInfo;
             TMP_MeshInfo[] cachedMeshInfo = textInfo.CopyMeshInfoVertexData();
@@ -202,7 +205,7 @@ namespace ATMPro {
 
             List<int> indexInRange = IndicesInRange(textInfo, ranges);
 
-            while (!atmp.actionTokenSource.IsCancellationRequested) {
+            while ( /*!atmp.actionTokenSource.IsCancellationRequested*/true) {
 
                 if (atmp.hasTextChanged) {
                     cachedMeshInfo = textInfo.CopyMeshInfoVertexData();
@@ -210,14 +213,14 @@ namespace ATMPro {
                 }
 
                 // 当 disable 时暂停本协程
-                if (!atmp.isActiveAndEnabled || textInfo.characterCount == 0) {
+                if ( /*!atmp.isActiveAndEnabled ||*/ textInfo.characterCount == 0) {
                     yield return null;
 
                     continue;
                 }
 
 
-                // for (int i = 0; i < textInfo.characterCount; i++) {
+                // 避免无意义的遍历，让 token 取消时不再遍历
                 foreach (int i in indexInRange) {
 
                     if (ranges == null) {
@@ -243,7 +246,7 @@ namespace ATMPro {
 
                     Vector3[] dstVertices = textInfo.meshInfo[materialIndex].vertices;
 
-                    dstVertices[vertexIndex] = srcVertices[vertexIndex]         + offset;
+                    dstVertices[vertexIndex] = srcVertices[vertexIndex] + offset;
                     dstVertices[vertexIndex + 1] = srcVertices[vertexIndex + 1] + offset;
                     dstVertices[vertexIndex + 2] = srcVertices[vertexIndex + 2] + offset;
                     dstVertices[vertexIndex + 3] = srcVertices[vertexIndex + 3] + offset;
@@ -261,7 +264,7 @@ namespace ATMPro {
                 yield return null;
             }
             Debug.Log("真的取消了！");
-        }
+        }   
     #endregion
 
     }
@@ -282,7 +285,7 @@ namespace ATMPro {
             argTypes = new Type[parameterInfos.Length];
             defaultArgValues = new object[parameterInfos.Length];
 
-            for (var i = 0; i < parameterInfos.Length; i++) {
+            for (int i = 0; i < parameterInfos.Length; i++) {
                 argTypes[i] = parameterInfos[i].ParameterType;
                 defaultArgValues[i] = parameterInfos[i].HasDefaultValue ? parameterInfos[i].DefaultValue : null;
                 if (i == 0)
@@ -343,9 +346,11 @@ namespace ATMPro {
                     args[i] = defaultArgValues[i];
                 }
             }
-
+            args[^1] = atmp.actionTokenSource.Token;
+            
             if (action == null) return func.Invoke(args);
 
+            // TODO 把token生成到args里给action
             action.Invoke(args);
             return null;
         }
@@ -358,13 +363,15 @@ namespace ATMPro {
             args[0] = atmp;
             for (var i = 1; i < argTypes.Length; i++) {
                 if (i < argStrings.Length + 1) {
-                    //TODO 改成手动分辨基本类型
+                    // TODO 改成手动分辨基本类型
                     args[i] = Convert.ChangeType(argStrings[i - 1], argTypes[i]);
                 } else {
                     args[i] = defaultArgValues[i];
                 }
             }
-            args[^1] = range;
+            // TODO 太丑陋了，可能要思考一下更优雅的写法
+            args[^2] = range;
+            args[^1] = atmp.actionTokenSource.Token;
 
             if (action == null) return func.Invoke(args);
 
