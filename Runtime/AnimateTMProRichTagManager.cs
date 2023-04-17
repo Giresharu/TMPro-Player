@@ -136,7 +136,6 @@ namespace ATMPro {
             while ((Time.time - startTime) * 1000 < time && !token.IsCancellationRequested) {
                 yield return null;
             }
-            // yield return new WaitForSeconds(time * 0.001f);
         }
 
         static IEnumerator Delay(AnimateTMProUGUI atmp, int time = 50, List<(int start, int end)> ranges = null, CancellationToken token = default) {
@@ -157,14 +156,15 @@ namespace ATMPro {
                 charaIndex = atmp.textMeshPro.maxVisibleCharacters;
 
                 // Debug.Log(index + " : " + atmp.textMeshPro.textInfo.characterInfo[index].character);
-                int i = indexInRange.FindIndex(x => x == charaIndex);
-
-                if (i != -1) {
+                // int i = indexInRange.FindIndex(x => x == charaIndex);
+                atmp.delay = indexInRange.Contains(charaIndex) ? time : atmp.defaultDelay;
+                yield return Pause(atmp.delay);
+                /*if (i != -1) {
                     atmp.delay = time;
                 } else {
                     atmp.delay = atmp.defaultDelay;
-                }
-                yield return null;
+                }*/
+                // yield return null;
             }
 
         }
@@ -365,7 +365,6 @@ namespace ATMPro {
                     args[i] = range;
                     offset++;
                 } else if (i < argStrings.Length + offset) {
-                    //TODO 改成手动分辨基本类型
                     args[i] = Convert.ChangeType(argStrings[i - offset], argTypes[i]);
                 } else {
                     args[i] = defaultArgValues[i];
@@ -378,8 +377,7 @@ namespace ATMPro {
             return null;
         }
     }
-    struct RichTagInfo {
-
+    internal struct RichTagInfo {
         internal string type;
         internal int startIndex;
         internal int endIndex;

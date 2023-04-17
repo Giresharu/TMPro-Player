@@ -9,10 +9,8 @@ using UnityEngine;
 
 namespace ATMPro {
 
-    //BUG disable本组件的时候，打字机协程并不会停止。另一方面，action停止后不会在重新enable时复原，需要考虑其他停止的条件：如通过销毁判断终止，而disable判断跳过执行
-
     [RequireComponent(typeof(TextMeshProUGUI))]
-    public class AnimateTMProUGUI : MonoBehaviour {
+    public class AnimateTMProUGUI : MonoBehaviour { 
         public bool typeWriter;
         public int defaultDelay;
         public char[] delayBlackList;
@@ -23,8 +21,7 @@ namespace ATMPro {
 
         int visibleCount;
 
-        public CancellationTokenSource actionTokenSource;
-
+        CancellationTokenSource actionTokenSource;
         CancellationTokenSource typeWriterTokenSource;
 
         Queue<RichTagInfo> richTags;
@@ -33,6 +30,8 @@ namespace ATMPro {
 
         void OnEnable() {
             TMPro_EventManager.TEXT_CHANGED_EVENT.Add(OnTextChanged);
+
+            if (typing) StartCoroutine(TypeWriter(typeWriterTokenSource.Token));
         }
 
         void OnDisable() {
@@ -96,9 +95,8 @@ namespace ATMPro {
             textMeshPro.maxVisibleCharacters = visibleCount = textMeshPro.textInfo.characterCount;
         }
 
-        public void SetVisibleCount(int count) {
-            textMeshPro.maxVisibleCharacters = visibleCount = count;
-        }
+        public void SetVisibleCount(int count) => textMeshPro.maxVisibleCharacters = visibleCount = count;
+
 
         [HideInInspector] public TextMeshProUGUI textMeshPro;
         [HideInInspector] public bool hasTextChanged;
@@ -111,7 +109,6 @@ namespace ATMPro {
             delay = defaultDelay;
 
             // 触发成对 Action
-
             foreach ((ActionInfo actionInfo, string[] value) tuple in pairedActions.Keys)
                 tuple.actionInfo.Invoke(this, actionTokenSource.Token, pairedActions[tuple], tuple.value);
 
@@ -130,8 +127,10 @@ namespace ATMPro {
             }
         }
 
-        IEnumerator TypeWriter(CancellationToken token) {
+        bool typing;
 
+        IEnumerator TypeWriter(CancellationToken token) {
+            typing = true;
             // int index = 0;
             while (visibleCount < textMeshPro.textInfo.characterCount + 1 && !token.IsCancellationRequested) {
 
@@ -156,7 +155,7 @@ namespace ATMPro {
                 lastChar = currentChar;
                 currentChar = visibleCount != 0 ? textMeshPro.textInfo.characterInfo[visibleCount - 1].character : '\0';
                 nextChar = visibleCount != textMeshPro.textInfo.characterCount ? textMeshPro.textInfo.characterInfo[visibleCount].character : '\0';
-                
+
                 // visibleCount包含第一个空字符，第一个字不等待。
                 if (visibleCount > 0 && ShouldDelay(currentChar)) {
                     // Debug.Log(currentChar + " : " + delay + " s");
@@ -168,6 +167,7 @@ namespace ATMPro {
                 visibleCount++;
                 // yield return null;
             }
+            typing = false;
         }
 
         bool ShouldDelay(char c) {
