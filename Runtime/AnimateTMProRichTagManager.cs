@@ -138,6 +138,7 @@ namespace ATMPro {
             }
         }
 
+        readonly List<int> changedIndex = new List<int>();
         static IEnumerator Delay(AnimateTMProUGUI atmp, int time = 50, List<(int start, int end)> ranges = null, CancellationToken token = default) {
 
             if (!atmp.typeWriter) yield break;
@@ -155,16 +156,14 @@ namespace ATMPro {
 
                 charaIndex = atmp.textMeshPro.maxVisibleCharacters;
 
-                // Debug.Log(index + " : " + atmp.textMeshPro.textInfo.characterInfo[index].character);
-                // int i = indexInRange.FindIndex(x => x == charaIndex);
-                atmp.delay = indexInRange.Contains(charaIndex) ? time : atmp.defaultDelay;
-                yield return Pause(atmp.delay);
-                /*if (i != -1) {
+                if (indexInRange.Contains(charaIndex)) {
                     atmp.delay = time;
-                } else {
+                    instance.changedIndex.Add(charaIndex);
+                } else if (!instance.changedIndex.Contains(charaIndex)) // 防止把其他范围的delay覆盖了
                     atmp.delay = atmp.defaultDelay;
-                }*/
-                // yield return null;
+                
+                yield return Pause(atmp.delay);
+
             }
 
         }
