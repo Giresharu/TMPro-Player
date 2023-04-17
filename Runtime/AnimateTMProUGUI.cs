@@ -96,6 +96,10 @@ namespace ATMPro {
             textMeshPro.maxVisibleCharacters = visibleCount = textMeshPro.textInfo.characterCount;
         }
 
+        public void SetVisibleCount(int count) {
+            textMeshPro.maxVisibleCharacters = visibleCount = count;
+        }
+
         [HideInInspector] public TextMeshProUGUI textMeshPro;
         [HideInInspector] public bool hasTextChanged;
         [HideInInspector] public int delay;
@@ -130,19 +134,10 @@ namespace ATMPro {
 
             // int index = 0;
             while (visibleCount < textMeshPro.textInfo.characterCount + 1 && !token.IsCancellationRequested) {
+
                 if (!isActiveAndEnabled) {
                     yield return null;
-
                     continue;
-                }
-                //BUG delay设为0的时候 会无视闭合标签，直到下一个pause才恢复默认delay
-                //第一个字（索引0是空气，1是第一个字）之前不等待。
-                if (visibleCount > 1 && ShouldDelay(currentChar) && delay != 0) {
-                    // Debug.Log(currentChar + " : " + delay + " s");
-                    float startTime = Time.time;
-                    while ((Time.time - startTime) * 1000 < delay && !token.IsCancellationRequested) {
-                        yield return null;
-                    }
                 }
 
                 textMeshPro.maxVisibleCharacters = visibleCount;
@@ -161,6 +156,14 @@ namespace ATMPro {
                 lastChar = currentChar;
                 currentChar = visibleCount != 0 ? textMeshPro.textInfo.characterInfo[visibleCount - 1].character : '\0';
                 nextChar = visibleCount != textMeshPro.textInfo.characterCount ? textMeshPro.textInfo.characterInfo[visibleCount].character : '\0';
+                
+                // visibleCount包含第一个空字符，第一个字不等待。
+                if (visibleCount > 0 && ShouldDelay(currentChar)) {
+                    // Debug.Log(currentChar + " : " + delay + " s");
+                    float startTime = Time.time;
+                    while ((Time.time - startTime) * 1000 < delay && !token.IsCancellationRequested)
+                        yield return null;
+                }
 
                 visibleCount++;
                 // yield return null;

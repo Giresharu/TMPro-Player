@@ -103,24 +103,30 @@ namespace ATMPro {
         }
 
         // ReSharper disable once MemberCanBePrivate.Global
-        protected static List<int> IndicesInRange(TMP_TextInfo textInfo, List<(int start, int end)> ranges) {
+        protected static List<int> IndicesInRange(TMP_TextInfo textInfo, List<(int start, int end)> ranges, bool isLeftOpen = false, bool isRightOpen = true) {
             List<int> indexInRange = new List<int>();
 
             if (ranges == null) return indexInRange;
 
-            indexInRange.Clear();
+            // indexInRange.Clear();
 
             for (int i = 0; i < textInfo.characterCount; i++) {
                 TMP_CharacterInfo characterInfo = textInfo.characterInfo[i];
                 foreach (var tuple in ranges) {
-                    if (characterInfo.index < tuple.start || characterInfo.index >= tuple.end) continue;
+                    int start = tuple.start;
+                    int end = tuple.end;
 
-                    indexInRange.Add(i);
-                    break;
+                    if (!isLeftOpen) start--;
+                    if (!isRightOpen) end++;
+
+                    if (characterInfo.index > start && characterInfo.index < end) {
+                        indexInRange.Add(i);
+                        break;
+                    }
+
                 }
             }
             return indexInRange;
-
         }
 
         /* --- Action Region --- */
@@ -135,44 +141,30 @@ namespace ATMPro {
 
         static IEnumerator Delay(AnimateTMProUGUI atmp, int time = 50, List<(int start, int end)> ranges = null, CancellationToken token = default) {
 
-            /*List<int> indexInRange = new List<int>();
-
-            TMP_TextInfo textInfo = atmp.tmp.textInfo;
-            for (int i = 0; i < textInfo.characterCount; i++) {
-                if (ranges == null) {
-                    break;
-                }
-
-                TMP_CharacterInfo characterInfo = textInfo.characterInfo[i];
-                foreach ((int start, int end) range in ranges) {
-                    if (characterInfo.index < range.start || characterInfo.index >= range.end) continue;
-
-                    indexInRange.Add(i);
-                    break;
-                }
-            }*/
-
             if (!atmp.typeWriter) yield break;
 
             atmp.textMeshPro.maxVisibleCharacters = 0; // 默认是9999
-            List<int> indexInRange = IndicesInRange(atmp.textMeshPro.textInfo, ranges);
+            List<int> indexInRange = IndicesInRange(atmp.textMeshPro.textInfo, ranges, false, false);
 
-            int index = 0;
-            while (!token.IsCancellationRequested && index < atmp.textMeshPro.textInfo.characterCount) {
+            int charaIndex = 0;
+            while (!token.IsCancellationRequested && charaIndex < atmp.textMeshPro.textInfo.characterCount) {
                 if (!atmp.isActiveAndEnabled) {
                     yield return null;
 
                     continue;
                 }
 
-                index = atmp.textMeshPro.maxVisibleCharacters;
+                charaIndex = atmp.textMeshPro.maxVisibleCharacters;
 
                 // Debug.Log(index + " : " + atmp.textMeshPro.textInfo.characterInfo[index].character);
-                atmp.delay = indexInRange.Contains(index) ? time : atmp.defaultDelay;
+                int i = indexInRange.FindIndex(x => x == charaIndex);
 
+                if (i != -1) {
+                    atmp.delay = time;
+                } else {
+                    atmp.delay = atmp.defaultDelay;
+                }
                 yield return null;
-                // yield return Pause(atmp.delay, token);
-                // yield return new WaitForSeconds(atmp.delay * 0.001f);
             }
 
         }
