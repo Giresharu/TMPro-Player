@@ -33,7 +33,7 @@ namespace ATMPro {
             // 包含闭合标签的范围性动作，是播放文字的开头触发的，所以使用协程
             SetActionInfo(args => StartCoroutine(Shake((AnimateTMProUGUI)args[0], (float)args[1], (float)args[2], (float)args[3], (CancellationToken)args[4], (List<(int, int)>)args[5])), "Shake", true, "shake", "Shake", "s", "S");
             SetActionInfo(args => StartCoroutine(Delay((AnimateTMProUGUI)args[0], (int)args[1], (List<(int, int)>)args[2], (CancellationToken)args[3])), "Delay", true, "delay", "Delay", "d", "D");
-
+            
             SetActionInfo(args => Pause((int)args[0], (CancellationToken)args[1]), "Pause", false, "pause", "Pause", "p", "P");
         }
 
@@ -143,14 +143,13 @@ namespace ATMPro {
 
             if (!atmp.typeWriter) yield break;
 
-            atmp.textMeshPro.maxVisibleCharacters = 0; // 默认是9999
+            // atmp.textMeshPro.maxVisibleCharacters = 0;
             List<int> indexInRange = IndicesInRange(atmp.textMeshPro.textInfo, ranges, false, false);
 
             int charaIndex = 0;
             while (!token.IsCancellationRequested && charaIndex < atmp.textMeshPro.textInfo.characterCount) {
                 if (!atmp.isActiveAndEnabled) {
                     yield return null;
-
                     continue;
                 }
 
@@ -161,7 +160,7 @@ namespace ATMPro {
                     instance.changedIndex.Add(charaIndex);
                 } else if (!instance.changedIndex.Contains(charaIndex)) // 防止把其他范围的delay覆盖了
                     atmp.delay = atmp.defaultDelay;
-                
+
                 yield return Pause(atmp.delay);
 
             }

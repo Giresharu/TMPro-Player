@@ -9,17 +9,18 @@ using UnityEngine;
 
 namespace ATMPro {
 
+    // BUG openString和closeString不够智能，会在 additive 下重复，考虑全篇使用 SringBuider 来记录 text 方便去除与修改
     [RequireComponent(typeof(TextMeshProUGUI))]
-    public class AnimateTMProUGUI : MonoBehaviour { 
+    public class AnimateTMProUGUI : MonoBehaviour {
         public bool typeWriter;
+        public StringBuilder openString;
+        public StringBuilder closeString;
         public int defaultDelay;
         public char[] delayBlackList;
 
         readonly Dictionary<int, List<(ActionInfo actionInfo, string[] value)>> singleActions = new Dictionary<int, List<(ActionInfo actionInfo, string[] value)>>();
         readonly Dictionary<(ActionInfo actionInfo, string[] value), List<(int start, int end)>> pairedActions = new Dictionary<(ActionInfo, string[] ), List<(int, int)>>(new ActionInfoComparer());
         readonly Queue<IEnumerator> typeWriterQueue = new Queue<IEnumerator>();
-
-        int visibleCount;
 
         CancellationTokenSource actionTokenSource;
         CancellationTokenSource typeWriterTokenSource;
@@ -64,9 +65,20 @@ namespace ATMPro {
         public void SetText(string text, bool additive = false) {
             if (textMeshPro == null) textMeshPro = GetComponent<TextMeshProUGUI>();
 
+            if (textMeshPro.textStyle.styleOpeningDefinition != null) {
+                openString ??= new StringBuilder();
+                openString.Append(textMeshPro.textStyle.styleOpeningDefinition);
+            }
+            if (textMeshPro.textStyle.styleClosingDefinition != null) {
+                closeString ??= new StringBuilder();
+                closeString.Append(textMeshPro.textStyle.styleClosingDefinition);
+            }
+            textMeshPro.textStyle = TMP_Style.NormalStyle;
+
             if (!additive) {
                 // visibleCount = 0;
                 textMeshPro.maxVisibleCharacters = visibleCount = 0; // 因为打字机携程无法判断是否增量更新，所以初始化要放到这里
+                typingIndex = 0;
 
                 (richTags, text) = ValidateRichTags(text);
                 textMeshPro.SetText(text);
@@ -77,6 +89,8 @@ namespace ATMPro {
 
                 actionTokenSource = new CancellationTokenSource();
             } else {
+                typingIndex = textMeshPro.text.Length - 1; // 跳过已经遍历过的文字
+
                 (richTags, text) = ValidateRichTags(text, textMeshPro.text.Length);
                 textMeshPro.SetText(textMeshPro.text + text);
                 actionTokenSource ??= new CancellationTokenSource();
@@ -93,6 +107,7 @@ namespace ATMPro {
             typeWriterTokenSource.Dispose();
 
             textMeshPro.maxVisibleCharacters = visibleCount = textMeshPro.textInfo.characterCount;
+            typingIndex = textMeshPro.text.Length - 1;
         }
 
         public void SetVisibleCount(int count) => textMeshPro.maxVisibleCharacters = visibleCount = count;
@@ -124,14 +139,16 @@ namespace ATMPro {
             } else {
                 typeWriterQueue.Clear();
                 textMeshPro.maxVisibleCharacters = visibleCount = textMeshPro.textInfo.characterCount;
+                typingIndex = textMeshPro.text.Length - 1;
             }
         }
 
         bool typing;
+        int visibleCount;
+        int typingIndex;
 
         IEnumerator TypeWriter(CancellationToken token) {
             typing = true;
-            // int index = 0;
             while (visibleCount < textMeshPro.textInfo.characterCount + 1 && !token.IsCancellationRequested) {
 
                 if (!isActiveAndEnabled) {
@@ -141,15 +158,22 @@ namespace ATMPro {
 
                 textMeshPro.maxVisibleCharacters = visibleCount;
 
-                if (singleActions.TryGetValue(visibleCount, out var tuples)) {
-                    for (int index = 0; index < tuples.Count; index++) {
-                        // 排队进行打字机效果的过程中如果非增量而切换到下一句时，会刷新掉所有 singleActions
-                        // 应该终止整个携程
-                        if (token.IsCancellationRequested)
-                            break;
+                // 解决会被自动隐藏的 tmp 自带标签不被算进 character 但是有被我们用来计算了 action 的 start 以及 end 的问题；
+                // 当目前遍历到的 typingIndex 不能与当前 visible 的最后一个 character 的 index 匹配时；
+                // 就一边递增 typingIndex 一边把对应的 action 执行掉
+                while (typingIndex <= textMeshPro.textInfo.characterInfo[visibleCount].index) {
+                    // indices.Add(index);
+                    if (singleActions.TryGetValue(typingIndex, out var tuples)) {
+                        for (int i = 0; i < tuples.Count; i++) {
+                            // 排队进行打字机效果的过程中如果非增量而切换到下一句时，会刷新掉所有 singleActions
+                            // 应该终止整个携程
+                            if (token.IsCancellationRequested)
+                                break;
 
-                        yield return tuples[index].actionInfo.Invoke(this, actionTokenSource.Token, null, tuples[index].value);
+                            yield return tuples[i].actionInfo.Invoke(this, actionTokenSource.Token, null, tuples[i].value);
+                        }
                     }
+                    typingIndex++;
                 }
 
                 lastChar = currentChar;
@@ -185,14 +209,18 @@ namespace ATMPro {
             Stack<int> tagIndices = new Stack<int>();
 
             StringBuilder sb = new StringBuilder();
+            sb.Append(openString);
             sb.Append(text);
+            sb.Append(closeString);
 
             // MatchCollection matches = Regex.Matches(text, @"<(/?[a-z]+)[=]*([a-fA-F0-9]*)>");
-            MatchCollection matches = Regex.Matches(text, @"<(/?[a-zA-Z0-9]+ *)[=]*(?<value> *[a-fA-F0-9.]+ *)*(?:,(?<value> *[a-fA-F0-9.]+ *))*>");
+            MatchCollection matches = Regex.Matches(sb.ToString(), @"<(/?[a-zA-Z0-9]+ *)[=]*(?<value> *[a-fA-F0-9.%]+ *)*(?:,(?<value> *[a-fA-F0-9.%]+ *))*>");
             int cutSize = 0 - offset;
+
 
             foreach (Match match in matches) {
                 string tagStr = match.Value;
+                // Debug.Log(tagStr);
                 string effectStr = match.Groups[1].ToString().TrimEnd();
                 var valuesCaptures = match.Groups[2].Captures;
                 string[] valueStrs = new string[valuesCaptures.Count];
