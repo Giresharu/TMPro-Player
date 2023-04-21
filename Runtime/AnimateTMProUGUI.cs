@@ -6,15 +6,15 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace ATMPro {
-
-    // BUG openString和closeString不够智能，会在 additive 下重复，考虑全篇使用 SringBuider 来记录 text 方便去除与修改
+    
     [RequireComponent(typeof(TextMeshProUGUI))]
     public class AnimateTMProUGUI : MonoBehaviour {
         public bool typeWriter;
-        public StringBuilder openString;
-        public StringBuilder closeString;
+        public string openStyle;
+        public string closeStyle;
         public int defaultDelay;
         public char[] delayBlackList;
 
@@ -33,6 +33,7 @@ namespace ATMPro {
             TMPro_EventManager.TEXT_CHANGED_EVENT.Add(OnTextChanged);
 
             if (typing) StartCoroutine(TypeWriter(typeWriterTokenSource.Token));
+
         }
 
         void OnDisable() {
@@ -62,25 +63,23 @@ namespace ATMPro {
         }
 
         // CancellationToken t;
-        public void SetText(string text, bool additive = false) {
+        public void SetText(string text, bool additive = false, bool newline = false) {
             if (textMeshPro == null) textMeshPro = GetComponent<TextMeshProUGUI>();
 
-            if (textMeshPro.textStyle.styleOpeningDefinition != null) {
-                openString ??= new StringBuilder();
-                openString.Append(textMeshPro.textStyle.styleOpeningDefinition);
-            }
-            if (textMeshPro.textStyle.styleClosingDefinition != null) {
-                closeString ??= new StringBuilder();
-                closeString.Append(textMeshPro.textStyle.styleClosingDefinition);
-            }
-            textMeshPro.textStyle = TMP_Style.NormalStyle;
+            /*if (textMeshPro.textStyle.styleOpeningDefinition != "")
+                openString = (textMeshPro.textStyle.styleOpeningDefinition);
+
+            if (textMeshPro.textStyle.styleClosingDefinition != "")
+                closeString = (textMeshPro.textStyle.styleClosingDefinition);
+
+            textMeshPro.textStyle = TMP_Style.NormalStyle;*/
 
             if (!additive) {
                 // visibleCount = 0;
                 textMeshPro.maxVisibleCharacters = visibleCount = 0; // 因为打字机携程无法判断是否增量更新，所以初始化要放到这里
                 typingIndex = 0;
 
-                (richTags, text) = ValidateRichTags(text);
+                (richTags, text) = ValidateRichTags(text, newline: newline);
                 textMeshPro.SetText(text);
 
                 // 初始化actionTokenSource。重开文字的话，把原来的actionTokenSource取消了
@@ -89,9 +88,7 @@ namespace ATMPro {
 
                 actionTokenSource = new CancellationTokenSource();
             } else {
-                typingIndex = textMeshPro.text.Length - 1; // 跳过已经遍历过的文字
-
-                (richTags, text) = ValidateRichTags(text, textMeshPro.text.Length);
+                (richTags, text) = ValidateRichTags(text, textMeshPro.text.Length, newline);
                 textMeshPro.SetText(textMeshPro.text + text);
                 actionTokenSource ??= new CancellationTokenSource();
             }
@@ -111,7 +108,6 @@ namespace ATMPro {
         }
 
         public void SetVisibleCount(int count) => textMeshPro.maxVisibleCharacters = visibleCount = count;
-
 
         [HideInInspector] public TextMeshProUGUI textMeshPro;
         [HideInInspector] public bool hasTextChanged;
@@ -168,7 +164,7 @@ namespace ATMPro {
                             // 排队进行打字机效果的过程中如果非增量而切换到下一句时，会刷新掉所有 singleActions
                             // 应该终止整个携程
                             if (token.IsCancellationRequested)
-                                break;
+                                yield break;
 
                             yield return tuples[i].actionInfo.Invoke(this, actionTokenSource.Token, null, tuples[i].value);
                         }
@@ -186,6 +182,7 @@ namespace ATMPro {
                     float startTime = Time.time;
                     while ((Time.time - startTime) * 1000 < delay && !token.IsCancellationRequested)
                         yield return null;
+                    if (token.IsCancellationRequested) yield break;
                 }
 
                 visibleCount++;
@@ -204,19 +201,21 @@ namespace ATMPro {
 
         }
 
-        (Queue<RichTagInfo> richTagInfos, string text) ValidateRichTags(string text, int offset = 0) {
+        (Queue<RichTagInfo> richTagInfos, string text) ValidateRichTags(string text, int offset = 0, bool newline = false) {
             List<RichTagInfo> textTags = new List<RichTagInfo>();
             Stack<int> tagIndices = new Stack<int>();
 
             StringBuilder sb = new StringBuilder();
-            sb.Append(openString);
+
+            if (newline) sb.Append('\n');
+            sb.Append(openStyle);
             sb.Append(text);
-            sb.Append(closeString);
+            sb.Append(closeStyle);
+            // if (delayForLastChar) sb.Append("<#00000000>0</color>");
 
             // MatchCollection matches = Regex.Matches(text, @"<(/?[a-z]+)[=]*([a-fA-F0-9]*)>");
             MatchCollection matches = Regex.Matches(sb.ToString(), @"<(/?[a-zA-Z0-9]+ *)[=]*(?<value> *[a-fA-F0-9.%]+ *)*(?:,(?<value> *[a-fA-F0-9.%]+ *))*>");
             int cutSize = 0 - offset;
-
 
             foreach (Match match in matches) {
                 string tagStr = match.Value;
@@ -225,7 +224,7 @@ namespace ATMPro {
                 var valuesCaptures = match.Groups[2].Captures;
                 string[] valueStrs = new string[valuesCaptures.Count];
 
-                for (var i = 0; i < valuesCaptures.Count; i++) {
+                for (int i = 0; i < valuesCaptures.Count; i++) {
                     valueStrs[i] = valuesCaptures[i].ToString();
                 }
 
@@ -254,19 +253,6 @@ namespace ATMPro {
                     while (temp.Count > 0) {
                         tagIndices.Push(temp.Pop());
                     }
-
-                    /*int i = tagIndices.Pop();
-
-                    RichTagInfo richTag = textTags[i];
-                    
-                    if (richTag.type == effectStr.TrimStart('/')) {
-                        richTag.endIndex = tagIndex - cutSize;
-                        textTags[i] = richTag;
-                        cutSize += tagStr.Length;
-                        sb.Remove(richTag.endIndex, tagStr.Length);
-                    } else {
-                        tagIndices.Push(i);
-                    }*/
                 } else {
                     RichTagInfo richTag = new RichTagInfo();
                     if (!AnimateTMProRichTagManager.TryGetActionInfo(effectStr, out ActionInfo actionInfo)) continue;
@@ -275,7 +261,7 @@ namespace ATMPro {
                     richTag.startIndex = tagIndex - cutSize;
                     richTag.endIndex = -1;
 
-                    for (var index = 0; index < valueStrs.Length; index++) {
+                    for (int index = 0; index < valueStrs.Length; index++) {
                         valueStrs[index] = valueStrs[index].Trim();
                     }
 
