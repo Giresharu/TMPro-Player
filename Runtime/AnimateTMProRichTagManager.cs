@@ -31,20 +31,10 @@ namespace ATMPro {
             actionInfos.Clear();
 
             // 包含闭合标签的范围性动作，是播放文字的开头触发的，所以使用协程
-            SetActionInfo(args => StartCoroutine(Shake((AnimateTMProUGUI)args[0], (float)args[1], (float)args[2], (float)args[3], (CancellationToken)args[4], (List<(int, int)>)args[5])), "Shake", true, "shake", "Shake", "s", "S");
             SetActionInfo(args => StartCoroutine(Delay((AnimateTMProUGUI)args[0], (int)args[1], (List<(int, int)>)args[2], (CancellationToken)args[3])), "Delay", true, "delay", "Delay", "d", "D");
-            
+
             SetActionInfo(args => Pause((int)args[0], (CancellationToken)args[1]), "Pause", false, "pause", "Pause", "p", "P");
         }
-
-        /*void SetActionInfo(Action<object[]> action, string methodName, bool needClosingTag, params string[] keys) {
-            SetActionInfo(typeof(AnimateTMProRichTagManager), action, methodName, needClosingTag, keys);
-        }
-
-        void SetActionInfo(Func<object[], IEnumerator> func, string methodName, bool needClosingTag, params string[] keys) {
-            SetActionInfo(typeof(AnimateTMProRichTagManager), func, methodName, needClosingTag, keys);
-            测试中文
-        }*/
 
         // ReSharper disable once MemberCanBePrivate.Global
         protected void SetActionInfo(Action<object[]> action, string methodName, bool needClosingTag, params string[] keys) {
@@ -57,7 +47,7 @@ namespace ATMPro {
             }
 
             ActionInfo actionInfo = new ActionInfo(action, methodInfo, needClosingTag);
-            foreach (var key in keys) {
+            foreach (string key in keys) {
                 instance.actionInfos[key] = actionInfo;
             }
         }
@@ -77,13 +67,6 @@ namespace ATMPro {
                 instance.actionInfos[key] = actionInfo;
             }
         }
-
-        /*protected void SetActionInfo(Type type, Action<object[]> action, string methodName, bool needClosingTag, params string[] keys) {
-            ActionInfo actionInfo = new ActionInfo(action, type.GetMethod(methodName, BindingFlags.Static | BindingFlags.NonPublic), needClosingTag);
-            foreach (var key in keys) {
-                instance.actionInfos.Add(key, actionInfo);
-            }
-        }*/
 
         internal static ActionInfo GetActionInfo(string key) {
             return instance.actionInfos[key];
@@ -129,9 +112,61 @@ namespace ATMPro {
             return indexInRange;
         }
 
+        protected static HashSet<int> IndicesInRangeHashSet(TMP_TextInfo textInfo, List<(int start, int end)> ranges, bool isLeftOpen = false, bool isRightOpen = true) {
+            HashSet<int> indexInRange = new HashSet<int>();
+
+            if (ranges == null) return indexInRange;
+
+            // indexInRange.Clear();
+
+            for (int i = 0; i < textInfo.characterCount; i++) {
+                TMP_CharacterInfo characterInfo = textInfo.characterInfo[i];
+                foreach (var tuple in ranges) {
+                    int start = tuple.start;
+                    int end = tuple.end;
+
+                    if (!isLeftOpen) start--;
+                    if (!isRightOpen) end++;
+
+                    if (characterInfo.index > start && characterInfo.index < end) {
+                        indexInRange.Add(i);
+                        break;
+                    }
+
+                }
+            }
+            return indexInRange;
+        }
+
+        protected static Dictionary<int, T> IndicesInRangeDictionary<T>(TMP_TextInfo textInfo, List<(int start, int end)> ranges, bool isLeftOpen = false, bool isRightOpen = true) {
+            Dictionary<int, T> indexInRange = new Dictionary<int, T>();
+
+            if (ranges == null) return indexInRange;
+
+            // indexInRange.Clear();
+
+            for (int i = 0; i < textInfo.characterCount; i++) {
+                TMP_CharacterInfo characterInfo = textInfo.characterInfo[i];
+                foreach (var tuple in ranges) {
+                    int start = tuple.start;
+                    int end = tuple.end;
+
+                    if (!isLeftOpen) start--;
+                    if (!isRightOpen) end++;
+
+                    if (characterInfo.index > start && characterInfo.index < end) {
+                        indexInRange.Add(i, default(T));
+                        break;
+                    }
+
+                }
+            }
+            return indexInRange;
+        }
+
         /* --- Action Region --- */
     #region Action Region
-        static IEnumerator Pause(int time = 500, CancellationToken token = default) {
+        protected static IEnumerator Pause(int time = 500, CancellationToken token = default) {
             float startTime = Time.time;
             while ((Time.time - startTime) * 1000 < time && !token.IsCancellationRequested) {
                 yield return null;
@@ -167,31 +202,13 @@ namespace ATMPro {
 
         }
 
-
-
-        static IEnumerator Shake(AnimateTMProUGUI atmp, float frequency = 15f, float amplitude = 1f, float phaseshift = 10f, CancellationToken token = default, List<(int start, int end)> ranges = null) {
+        /*static IEnumerator Shake(AnimateTMProUGUI atmp, float frequency = 15f, float amplitude = 1f, float phaseshift = 10f, CancellationToken token = default, List<(int start, int end)> ranges = null) {
 
             TMP_TextInfo textInfo = atmp.textMeshPro.textInfo;
             TMP_MeshInfo[] cachedMeshInfo = textInfo.CopyMeshInfoVertexData();
 
             float startTime = Time.time;
             float angle = Random.value * 2f * Mathf.PI; //把 0 ~ 1 的随机数映射到 0 ~ 2PI 的弧度
-
-            /*List<int> indexInRange = new List<int>();
-
-            for (int i = 0; i < textInfo.characterCount; i++) {
-                if (ranges == null) {
-                    break;
-                }
-
-                TMP_CharacterInfo characterInfo = textInfo.characterInfo[i];
-                foreach ((int start, int end) range in ranges) {
-                    if (characterInfo.index < range.start || characterInfo.index >= range.end) continue;
-
-                    indexInRange.Add(i);
-                    break;
-                }
-            }*/
 
             List<int> indexInRange = IndicesInRange(textInfo, ranges);
 
@@ -248,7 +265,7 @@ namespace ATMPro {
                 }
                 yield return null;
             }
-        }
+        }*/
     #endregion
 
     }
