@@ -67,6 +67,7 @@ namespace ATMPro {
 
         TMP_MeshInfo[] recordMeshInfo;
         public TMP_MeshInfo[] cachedMeshInfo;
+        TMP_VertexDataUpdateFlags recordUpdateFlags = TMP_VertexDataUpdateFlags.None;
 
         public void UpdateVertexData(TMP_VertexDataUpdateFlags updateFlags) {
 
@@ -81,24 +82,41 @@ namespace ATMPro {
             for (int i = 0; i < textMeshPro.textInfo.meshInfo.Length; i++) {
                 if (length > meshInfo[i].vertices.Length) length = meshInfo[i].vertices.Length;
 
-                recordMeshInfo[i].vertices ??= new Vector3[meshInfo[i].vertices.Length];
-                recordMeshInfo[i].uvs0 ??= new Vector2[meshInfo[i].vertices.Length];
-                recordMeshInfo[i].uvs2 ??= new Vector2[meshInfo[i].vertices.Length];
-                recordMeshInfo[i].colors32 ??= new Color32[meshInfo[i].vertices.Length];
+                if ((updateFlags & TMP_VertexDataUpdateFlags.Vertices) != 0) {
+                    recordMeshInfo[i].vertices ??= new Vector3[meshInfo[i].vertices.Length];
+                    if (recordMeshInfo[i].vertices.Length < meshInfo[i].vertices.Length)
+                        Array.Resize(ref recordMeshInfo[i].vertices, meshInfo[i].vertices.Length);
 
-                if (recordMeshInfo[i].vertices.Length < meshInfo[i].vertices.Length) Array.Resize(ref recordMeshInfo[i].vertices, meshInfo[i].vertices.Length);
-                if (recordMeshInfo[i].uvs0.Length < meshInfo[i].vertices.Length) Array.Resize(ref recordMeshInfo[i].uvs0, meshInfo[i].vertices.Length);
-                if (recordMeshInfo[i].uvs2.Length < meshInfo[i].vertices.Length) Array.Resize(ref recordMeshInfo[i].uvs2, meshInfo[i].vertices.Length);
-                if (recordMeshInfo[i].colors32.Length < meshInfo[i].vertices.Length) Array.Resize(ref recordMeshInfo[i].colors32, meshInfo[i].vertices.Length);
+                    Array.Copy(meshInfo[i].vertices, recordMeshInfo[i].vertices, length);
+                }
 
-                Array.Copy(meshInfo[i].vertices, recordMeshInfo[i].vertices, length);
-                Array.Copy(meshInfo[i].uvs0, recordMeshInfo[i].uvs0, length);
-                Array.Copy(meshInfo[i].uvs2, recordMeshInfo[i].uvs2, length);
-                Array.Copy(meshInfo[i].colors32, recordMeshInfo[i].colors32, length);
+                if ((updateFlags & TMP_VertexDataUpdateFlags.Uv0) != 0) {
+                    recordMeshInfo[i].uvs0 ??= new Vector2[meshInfo[i].uvs0.Length];
+                    if (recordMeshInfo[i].uvs0.Length < meshInfo[i].uvs0.Length)
+                        Array.Resize(ref recordMeshInfo[i].uvs0, meshInfo[i].uvs0.Length);
+
+                    Array.Copy(meshInfo[i].uvs0, recordMeshInfo[i].uvs0, length);
+                }
+
+                if ((updateFlags & TMP_VertexDataUpdateFlags.Uv2) != 0) {
+                    recordMeshInfo[i].uvs2 ??= new Vector2[meshInfo[i].uvs2.Length];
+                    if (recordMeshInfo[i].uvs2.Length < meshInfo[i].uvs2.Length)
+                        Array.Resize(ref recordMeshInfo[i].uvs2, meshInfo[i].uvs2.Length);
+
+                    Array.Copy(meshInfo[i].uvs2, recordMeshInfo[i].uvs2, length);
+                }
+
+                if ((updateFlags & TMP_VertexDataUpdateFlags.Colors32) != 0) {
+                    recordMeshInfo[i].colors32 ??= new Color32[meshInfo[i].colors32.Length];
+                    if (recordMeshInfo[i].colors32.Length < meshInfo[i].colors32.Length)
+                        Array.Resize(ref recordMeshInfo[i].colors32, meshInfo[i].colors32.Length);
+
+                    Array.Copy(meshInfo[i].colors32, recordMeshInfo[i].colors32, length);
+                }
             }
 
+            recordUpdateFlags |= updateFlags;
             textMeshPro.UpdateVertexData(updateFlags);
-
         }
 
         /// <summary>
@@ -111,15 +129,18 @@ namespace ATMPro {
                 if (i < textMeshPro.textInfo.meshInfo.Length) {
                     if (length > recordMeshInfo[i].vertices.Length)
                         length = recordMeshInfo[i].vertices.Length;
-
-                    Array.Copy(recordMeshInfo[i].vertices, textMeshPro.textInfo.meshInfo[i].vertices, length);
-                    Array.Copy(recordMeshInfo[i].uvs0, textMeshPro.textInfo.meshInfo[i].uvs0, length);
-                    Array.Copy(recordMeshInfo[i].uvs2, textMeshPro.textInfo.meshInfo[i].uvs2, length);
-                    Array.Copy(recordMeshInfo[i].colors32, textMeshPro.textInfo.meshInfo[i].colors32, length);
+                    if ((recordUpdateFlags & TMP_VertexDataUpdateFlags.Vertices) != 0)
+                        Array.Copy(recordMeshInfo[i].vertices, textMeshPro.textInfo.meshInfo[i].vertices, length);
+                    if ((recordUpdateFlags & TMP_VertexDataUpdateFlags.Uv0) != 0)
+                        Array.Copy(recordMeshInfo[i].uvs0, textMeshPro.textInfo.meshInfo[i].uvs0, length);
+                    if ((recordUpdateFlags & TMP_VertexDataUpdateFlags.Uv2) != 0)
+                        Array.Copy(recordMeshInfo[i].uvs2, textMeshPro.textInfo.meshInfo[i].uvs2, length);
+                    if ((recordUpdateFlags & TMP_VertexDataUpdateFlags.Colors32) != 0)
+                        Array.Copy(recordMeshInfo[i].colors32, textMeshPro.textInfo.meshInfo[i].colors32, length);
 
                 }
             }
-            textMeshPro.UpdateVertexData(TMP_VertexDataUpdateFlags.All);
+            textMeshPro.UpdateVertexData(recordUpdateFlags);
         }
 
         // CancellationToken t;
@@ -133,6 +154,7 @@ namespace ATMPro {
                 // cachedCount = 0;
                 cachedMeshInfo = null;
                 recordMeshInfo = null;
+                recordUpdateFlags = TMP_VertexDataUpdateFlags.None;
                 // cachedMeshInfoForRestore = null;
 
                 (richTags, text) = ValidateRichTags(text, newline: newline);
@@ -143,8 +165,10 @@ namespace ATMPro {
                 actionTokenSource?.Dispose();
 
                 actionTokenSource = new CancellationTokenSource();
-            } else { 
+            } else {
                 recordMeshInfo = null;
+                recordUpdateFlags = TMP_VertexDataUpdateFlags.None;
+
                 (richTags, text) = ValidateRichTags(text, textMeshPro.text.Length, newline);
                 textMeshPro.SetText(textMeshPro.text + text);
                 actionTokenSource ??= new CancellationTokenSource();
