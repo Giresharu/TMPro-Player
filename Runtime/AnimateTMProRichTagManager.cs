@@ -176,7 +176,7 @@ namespace ATMPro {
         readonly List<int> changedIndex = new List<int>();
         static IEnumerator Delay(AnimateTMProUGUI atmp, int time = 50, List<(int start, int end)> ranges = null, CancellationToken token = default) {
 
-            if (!atmp.typeWriter) yield break;
+            if (!atmp.isTypeWriter) yield break;
 
             // atmp.textMeshPro.maxVisibleCharacters = 0;
             List<int> indexInRange = IndicesInRange(atmp.textMeshPro.textInfo, ranges, false, false);

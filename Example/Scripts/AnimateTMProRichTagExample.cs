@@ -21,10 +21,25 @@ public class AnimateTMProRichTagExample : AnimateTMProRichTagManager {
     static IEnumerator Appear(AnimateTMProUGUI atmp, int time = 500, CancellationToken token = default, List<(int start, int end)> ranges = null) {
         TMP_TextInfo textInfo = atmp.textMeshPro.textInfo;
 
-        List<int> isAppearInRange = IndicesInRange(textInfo, ranges);
+        HashSet<int> isAppearInRange = IndicesInRangeHashSet(textInfo, ranges);
 
-        while (true) {
-            foreach (int i in isAppearInRange) {
+        while (isAppearInRange.Count > 0) {
+            int index = textInfo.characterInfo[atmp.visibleCount - 1].index;
+            if (isAppearInRange.Contains(index)) {
+                isAppearInRange.Remove(index);
+                atmp.StartCoroutine(AppearAnimation(index));
+            }
+            yield return null;
+        }
+
+        IEnumerator AppearAnimation(int i) {
+
+            float startTime = Time.time;
+
+            while (!token.IsCancellationRequested) {
+
+
+                float alpha = Mathf.Clamp01((Time.time - startTime) * 1000 / time);
 
                 int materialIndex = textInfo.characterInfo[i].materialReferenceIndex;
                 int vertexIndex = textInfo.characterInfo[i].vertexIndex;
@@ -32,16 +47,18 @@ public class AnimateTMProRichTagExample : AnimateTMProRichTagManager {
                 Color32[] dstColors = textInfo.meshInfo[materialIndex].colors32;
                 Color32[] srcColors = atmp.cachedMeshInfo[materialIndex].colors32;
 
-                dstColors[vertexIndex].a = (byte)(srcColors[vertexIndex].a * 0.5f);
-                dstColors[vertexIndex + 1].a = (byte)(srcColors[vertexIndex + 1].a * 0.5f);
-                dstColors[vertexIndex + 2].a = (byte)(srcColors[vertexIndex + 2].a * 0.5f);
-                dstColors[vertexIndex + 3].a = (byte)(srcColors[vertexIndex + 3].a * 0.5f);
-            }
-            if (atmp.textMeshPro.maxVisibleCharacters > 1)
-                atmp.UpdateVertexData(TMP_VertexDataUpdateFlags.Colors32);
-            // atmp.textMeshPro.UpdateVertexData(TMP_VertexDataUpdateFlags.Colors32);
+                dstColors[vertexIndex].a = (byte)Mathf.Clamp(srcColors[vertexIndex].a * alpha, 0, 255);
+                dstColors[vertexIndex + 1].a = (byte)Mathf.Clamp(srcColors[vertexIndex + 1].a * alpha, 0, 255);
+                dstColors[vertexIndex + 2].a = (byte)Mathf.Clamp(srcColors[vertexIndex + 2].a * alpha, 0, 255);
+                dstColors[vertexIndex + 3].a = (byte)Mathf.Clamp(srcColors[vertexIndex + 3].a * alpha, 0, 255);
 
-            yield return null;
+                // atmp.UpdateVertexData(TMP_VertexDataUpdateFlags.Colors32);
+                atmp.updateFlags |= TMP_VertexDataUpdateFlags.Colors32;
+
+                if (alpha >= 1) yield break;
+
+                yield return null;
+            }
 
         }
 
@@ -94,8 +111,9 @@ public class AnimateTMProRichTagExample : AnimateTMProRichTagManager {
                 dstVertices[vertexIndex + 3] = srcVertices[vertexIndex + 3] + offset;
 
             }
-            if (atmp.textMeshPro.maxVisibleCharacters > 1)
-                atmp.UpdateVertexData(TMP_VertexDataUpdateFlags.Vertices);
+
+            if (atmp.textMeshPro.maxVisibleCharacters > 1) atmp.updateFlags |= TMP_VertexDataUpdateFlags.Vertices;
+            // atmp.UpdateVertexData(TMP_VertexDataUpdateFlags.Vertices);
             // atmp.textMeshPro.UpdateVertexData(TMP_VertexDataUpdateFlags.Vertices);
 
             // 每次完成一个频次就重新生成一个弧度
