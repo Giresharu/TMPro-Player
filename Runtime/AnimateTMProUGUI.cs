@@ -31,15 +31,15 @@ namespace ATMPro {
         Action test;
 
         void OnEnable() {
-            TMPro_EventManager.TEXT_CHANGED_EVENT.Add(OnTextChanged);
+            // TMPro_EventManager.TEXT_CHANGED_EVENT.Add(OnTextChanged);
 
             if (typing) StartCoroutine(TypeWriter(typeWriterTokenSource.Token));
 
         }
 
-        void OnDisable() {
+        /*void OnDisable() {
             TMPro_EventManager.TEXT_CHANGED_EVENT.Remove(OnTextChanged);
-        }
+        }*/
 
         void Start() {
             if (textMeshPro == null) textMeshPro = GetComponent<TextMeshProUGUI>();
@@ -60,19 +60,14 @@ namespace ATMPro {
             typeWriterTokenSource.Dispose();
         }
 
-        void OnTextChanged(object obj) {
+        /*void OnTextChanged(object obj) {
             if ((TextMeshProUGUI)obj == textMeshPro) {
-                // cachedMeshInfo = textMeshPro.textInfo.CopyMeshInfoVertexData();
-                // RestoreRecord();
             }
-        }
+        }*/
 
-        // TMP_MeshInfo[] recordMeshInfo;
         public TMP_MeshInfo[] cachedMeshInfo;
         public TMP_VertexDataUpdateFlags updateFlags = TMP_VertexDataUpdateFlags.None;
-        // int countBeforeAdditive;
 
-        // TMP_MeshInfo[] initMeshInfo;
 
         void InitMeshInfo() {
             TMP_MeshInfo[] meshInfo = textMeshPro.textInfo.meshInfo;
@@ -126,71 +121,14 @@ namespace ATMPro {
             textMeshPro.UpdateVertexData(updateFlags);
             updateFlags = 0;
         }
-
-        /*public void UpdateVertexData(TMP_VertexDataUpdateFlags updateFlags) {
-
-            // 将当前 MeshInfo 写进 record
-            int length = (visibleCount - 1) * 4;
-
-            TMP_MeshInfo[] meshInfo = textMeshPro.textInfo.meshInfo;
-
-            recordMeshInfo ??= new TMP_MeshInfo[meshInfo.Length];
-            if (recordMeshInfo.Length < meshInfo.Length) Array.Resize(ref recordMeshInfo, meshInfo.Length);
-
-            for (int i = 0; i < textMeshPro.textInfo.meshInfo.Length; i++) {
-                if (length > meshInfo[i].vertices.Length) length = meshInfo[i].vertices.Length;
-
-                if ((updateFlags & TMP_VertexDataUpdateFlags.Vertices) != 0) {
-                    recordMeshInfo[i].vertices ??= new Vector3[meshInfo[i].vertices.Length];
-                    if (recordMeshInfo[i].vertices.Length < meshInfo[i].vertices.Length)
-                        Array.Resize(ref recordMeshInfo[i].vertices, meshInfo[i].vertices.Length);
-
-                    Array.Copy(meshInfo[i].vertices, recordMeshInfo[i].vertices, length);
-                }
-
-                if ((updateFlags & TMP_VertexDataUpdateFlags.Uv0) != 0) {
-                    recordMeshInfo[i].uvs0 ??= new Vector2[meshInfo[i].uvs0.Length];
-                    if (recordMeshInfo[i].uvs0.Length < meshInfo[i].uvs0.Length)
-                        Array.Resize(ref recordMeshInfo[i].uvs0, meshInfo[i].uvs0.Length);
-
-                    Array.Copy(meshInfo[i].uvs0, recordMeshInfo[i].uvs0, length);
-                }
-
-                if ((updateFlags & TMP_VertexDataUpdateFlags.Uv2) != 0) {
-                    recordMeshInfo[i].uvs2 ??= new Vector2[meshInfo[i].uvs2.Length];
-                    if (recordMeshInfo[i].uvs2.Length < meshInfo[i].uvs2.Length)
-                        Array.Resize(ref recordMeshInfo[i].uvs2, meshInfo[i].uvs2.Length);
-
-                    Array.Copy(meshInfo[i].uvs2, recordMeshInfo[i].uvs2, length);
-                }
-
-                if ((updateFlags & TMP_VertexDataUpdateFlags.Colors32) != 0) {
-                    recordMeshInfo[i].colors32 ??= new Color32[meshInfo[i].colors32.Length];
-                    if (recordMeshInfo[i].colors32.Length < meshInfo[i].colors32.Length)
-                        Array.Resize(ref recordMeshInfo[i].colors32, meshInfo[i].colors32.Length);
-
-                    Array.Copy(meshInfo[i].colors32, recordMeshInfo[i].colors32, length);
-                }
-            }
-
-            updateFlags |= updateFlags;
-            textMeshPro.UpdateVertexData(updateFlags);
-        }*/
-
         
-
-        // CancellationToken t;
         public void SetText(string text, bool isAdditive = false, bool newline = false) {
             if (textMeshPro == null) textMeshPro = GetComponent<TextMeshProUGUI>();
 
             if (!isAdditive) {
-                // visibleCount = 0;
-                /*textMeshPro.maxVisibleCharacters = */
+
                 visibleCount = 0; // 因为打字机携程无法判断是否增量更新，所以初始化要放到这里
-                // vertexCount = 0;
                 typingIndex = 0;
-                // countBeforeAdditive = 0;
-                // visibleChar.Clear();
 
                 (richTags, text) = ValidateRichTags(text, newline: newline);
                 textMeshPro.SetText(text);
@@ -218,18 +156,14 @@ namespace ATMPro {
 
             typeWriterTokenSource.Cancel();
             typeWriterTokenSource.Dispose();
-
-            /*textMeshPro.maxVisibleCharacters = */
+            
             while (visibleCount <= textMeshPro.textInfo.characterCount) {
                 DisplayCharacter();
                 visibleCount++;
             }
-            // visibleCount = textMeshPro.textInfo.characterCount;
+
             typingIndex = textMeshPro.text.Length - 1;
             updateFlags |= TMP_VertexDataUpdateFlags.Colors32;
-
-            // textMeshPro.UpdateVertexData(TMP_VertexDataUpdateFlags.Colors32);
-
         }
 
         [HideInInspector] public TextMeshProUGUI textMeshPro;
@@ -255,16 +189,13 @@ namespace ATMPro {
                 if (!isAdditive || !typing) StartCoroutine(TypeWriter(typeWriterTokenSource.Token));
             } else {
                 typeWriterQueue.Clear();
-                /*textMeshPro.maxVisibleCharacters =*/
+
                 while (visibleCount <= textMeshPro.textInfo.characterCount) {
-                    // StartCoroutine(DisplayCharacter());
                     DisplayCharacter();
                     visibleCount++;
                 }
                 typingIndex = textMeshPro.text.Length - 1;
                 updateFlags |= TMP_VertexDataUpdateFlags.Colors32;
-
-                // textMeshPro.UpdateVertexData(TMP_VertexDataUpdateFlags.Colors32);
 
             }
 
@@ -272,8 +203,7 @@ namespace ATMPro {
             foreach ((ActionInfo actionInfo, string[] value) tuple in pairedActions.Keys)
                 tuple.actionInfo.Invoke(this, actionTokenSource.Token, pairedActions[tuple], tuple.value);
         }
-
-        // public readonly HashSet<int> visibleChar = new HashSet<int>();
+        
 
         void DisplayCharacter() {
             
@@ -292,8 +222,6 @@ namespace ATMPro {
             dstColors[vertexIndex + 2] = srcColors[vertexIndex + 2];
             dstColors[vertexIndex + 3] = srcColors[vertexIndex + 3];
 
-            // visibleChar.Add(textMeshPro.textInfo.characterInfo[visibleCount - 1].index);
-
             updateFlags &= TMP_VertexDataUpdateFlags.Colors32;
 
         }
@@ -310,15 +238,14 @@ namespace ATMPro {
                     yield return null;
                     continue;
                 }
-
-                // StartCoroutine(DisplayCharacter());
+                
                 DisplayCharacter();
 
                 // 解决会被自动隐藏的 tmp 自带标签不被算进 character 但是有被我们用来计算了 action 的 start 以及 end 的问题；
                 // 当目前遍历到的 typingIndex 不能与当前 visible 的最后一个 character 的 index 匹配时；
                 // 就一边递增 typingIndex 一边把对应的 action 执行掉
                 while (textMeshPro.textInfo.characterCount > visibleCount && typingIndex <= textMeshPro.textInfo.characterInfo[visibleCount].index) {
-                    // indices.Add(index);
+
                     if (singleActions.TryGetValue(typingIndex, out var tuples)) {
                         for (int i = 0; i < tuples.Count; i++) {
                             // 排队进行打字机效果的过程中如果非增量而切换到下一句时，会刷新掉所有 singleActions
@@ -338,7 +265,7 @@ namespace ATMPro {
 
                 // visibleCount包含第一个空字符，第一个字不等待。
                 if (visibleCount > 0 && ShouldDelay(currentChar) && textMeshPro.textInfo.characterInfo[visibleCount - 1].isVisible) {
-                    // Debug.Log(currentChar + " : " + delay + " s");
+
                     float startTime = Time.time;
                     while ((Time.time - startTime) * 1000 < delay && !token.IsCancellationRequested)
                         yield return null;
@@ -346,9 +273,6 @@ namespace ATMPro {
                 }
 
                 visibleCount++;
-                
-                // textMeshPro.maxVisibleCharacters = visibleCount;
-
 
             }
             typing = false;
@@ -374,9 +298,7 @@ namespace ATMPro {
             sb.Append(openStyle);
             sb.Append(text);
             sb.Append(closeStyle);
-            // if (delayForLastChar) sb.Append("<#00000000>0</color>");
 
-            // MatchCollection matches = Regex.Matches(text, @"<(/?[a-z]+)[=]*([a-fA-F0-9]*)>");
             MatchCollection matches = Regex.Matches(sb.ToString(), @"<(/?[a-zA-Z0-9]+ *)[=]*(?<value> *[a-fA-F0-9.%]+ *)*(?:,(?<value> *[a-fA-F0-9.%]+ *))*>");
             int cutSize = 0 - offset;
 
@@ -435,7 +357,6 @@ namespace ATMPro {
                     textTags.Add(richTag);
                     cutSize += tagStr.Length;
                     sb.Remove(richTag.startIndex - offset, tagStr.Length);
-                    // text = text.Remove(richTag.startIndex, tagStr.Length);
 
                 }
             }
