@@ -1,10 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using ATMPro;
-using System;
 using System.Threading;
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -24,7 +22,7 @@ public class AnimateTMProRichTagExample : AnimateTMProRichTagManager {
         HashSet<int> isAppearInRange = IndicesInRangeHashSet(textInfo, ranges);
 
         while (isAppearInRange.Count > 0) {
-            int index = textInfo.characterInfo[atmp.visibleCount - 1].index;
+            int index = atmp.visibleCount - 1;
             if (isAppearInRange.Contains(index)) {
                 isAppearInRange.Remove(index);
                 atmp.StartCoroutine(AppearAnimation(index));
