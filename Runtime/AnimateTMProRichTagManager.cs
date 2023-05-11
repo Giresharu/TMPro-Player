@@ -15,16 +15,16 @@ namespace ATMPro {
 
         readonly Dictionary<string, ActionInfo> actionInfos = new Dictionary<string, ActionInfo>();
 
-        public static bool Initialized { get { return instance != null && instance.initialized; } }
+        /*public static bool Initialized { get { return instance != null && instance.initialized; } }
 
-        bool initialized;
+        bool initialized;*/
 
         void Awake() {
             if (instance == null) instance = this;
             else Destroy(this);
             DontDestroyOnLoad(this);
             Initialize();
-            initialized = true;
+            // initialized = true;
         }
 
         protected virtual void Initialize() {
@@ -85,6 +85,14 @@ namespace ATMPro {
             return actionInfos.ContainsKey(key);
         }
 
+        /// <summary>
+        /// 以 List 的形式返回索引范围内的文字在 characterInfo 中的索引
+        /// </summary>
+        /// <param name="textInfo">用于解析的 textInfo</param>
+        /// <param name="ranges">范围</param>
+        /// <param name="isLeftOpen">左开区间</param>
+        /// <param name="isRightOpen">右开区间</param>
+        /// <returns></returns>
         // ReSharper disable once MemberCanBePrivate.Global
         protected static List<int> IndicesInRange(TMP_TextInfo textInfo, List<(int start, int end)> ranges, bool isLeftOpen = false, bool isRightOpen = true) {
             List<int> indexInRange = new List<int>();
@@ -112,12 +120,18 @@ namespace ATMPro {
             return indexInRange;
         }
 
+        /// <summary>
+        /// 以 HashSet 的形式返回索引范围内的文字在 characterInfo 中的索引
+        /// </summary>
+        /// <param name="textInfo">用于解析的 textInfo</param>
+        /// <param name="ranges">范围</param>
+        /// <param name="isLeftOpen">左开区间</param>
+        /// <param name="isRightOpen">右开区间</param>
+        /// <returns></returns>
         protected static HashSet<int> IndicesInRangeHashSet(TMP_TextInfo textInfo, List<(int start, int end)> ranges, bool isLeftOpen = false, bool isRightOpen = true) {
             HashSet<int> indexInRange = new HashSet<int>();
 
             if (ranges == null) return indexInRange;
-
-            // indexInRange.Clear();
 
             for (int i = 0; i < textInfo.characterCount; i++) {
                 TMP_CharacterInfo characterInfo = textInfo.characterInfo[i];
@@ -138,6 +152,14 @@ namespace ATMPro {
             return indexInRange;
         }
 
+        /// <summary>
+        /// 以 Dictionary 的形式返回索引范围内的文字在 characterInfo 中的索引
+        /// </summary>
+        /// <param name="textInfo">用于解析的 textInfo</param>
+        /// <param name="ranges">范围</param>
+        /// <param name="isLeftOpen">左开区间</param>
+        /// <param name="isRightOpen">右开区间</param>
+        /// <returns></returns>
         protected static Dictionary<int, T> IndicesInRangeDictionary<T>(TMP_TextInfo textInfo, List<(int start, int end)> ranges, bool isLeftOpen = false, bool isRightOpen = true) {
             Dictionary<int, T> indexInRange = new Dictionary<int, T>();
 
