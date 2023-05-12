@@ -222,7 +222,7 @@ namespace ATMPro {
             dstColors[vertexIndex + 2] = srcColors[vertexIndex + 2];
             dstColors[vertexIndex + 3] = srcColors[vertexIndex + 3];
 
-            updateFlags &= TMP_VertexDataUpdateFlags.Colors32;
+            updateFlags |= TMP_VertexDataUpdateFlags.Colors32;
 
         }
 
