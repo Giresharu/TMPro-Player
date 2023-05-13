@@ -5,19 +5,14 @@ using System.Reflection;
 using System.Threading;
 using TMPro;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
-namespace ATMPro {
+namespace TMPP {
 
     public class AnimateTMProRichTagManager : MonoBehaviour {
 
         static AnimateTMProRichTagManager instance;
 
         readonly Dictionary<string, ActionInfo> actionInfos = new Dictionary<string, ActionInfo>();
-
-        /*public static bool Initialized { get { return instance != null && instance.initialized; } }
-
-        bool initialized;*/
 
         void Awake() {
             if (instance == null) instance = this;
@@ -31,7 +26,7 @@ namespace ATMPro {
             actionInfos.Clear();
 
             // 包含闭合标签的范围性动作，是播放文字的开头触发的，所以使用协程
-            SetActionInfo(args => StartCoroutine(Delay((AnimateTMProUGUI)args[0], (int)args[1], (List<(int, int)>)args[2], (CancellationToken)args[3])), "Delay", true, "delay", "Delay", "d", "D");
+            SetActionInfo(args => StartCoroutine(Delay((TMProPlayer)args[0], (int)args[1], (List<(int, int)>)args[2], (CancellationToken)args[3])), "Delay", true, "delay", "Delay", "d", "D");
 
             SetActionInfo(args => Pause((int)args[0], (CancellationToken)args[1]), "Pause", false, "pause", "Pause", "p", "P");
         }
@@ -185,10 +180,9 @@ namespace ATMPro {
             }
             return indexInRange;
         }
-
-        /* --- Action Region --- */
+        
     #region Action Region
-        protected static IEnumerator Pause(int time = 500, CancellationToken token = default) {
+        static IEnumerator Pause(int time = 500, CancellationToken token = default) {
             float startTime = Time.time;
             while ((Time.time - startTime) * 1000 < time && !token.IsCancellationRequested) {
                 yield return null;
@@ -196,98 +190,33 @@ namespace ATMPro {
         }
 
         readonly List<int> changedIndex = new List<int>();
-        static IEnumerator Delay(AnimateTMProUGUI atmp, int time = 50, List<(int start, int end)> ranges = null, CancellationToken token = default) {
+        static IEnumerator Delay(TMProPlayer tmpp, int time = 50, List<(int start, int end)> ranges = null, CancellationToken token = default) {
 
-            if (!atmp.isTypeWriter) yield break;
+            if (!tmpp.isTypeWriter) yield break;
 
-            // atmp.textMeshPro.maxVisibleCharacters = 0;
-            List<int> indexInRange = IndicesInRange(atmp.textMeshPro.textInfo, ranges, false, false);
+            // tmpp.textMeshPro.maxVisibleCharacters = 0;
+            List<int> indexInRange = IndicesInRange(tmpp.TextMeshPro.textInfo, ranges, false, false);
 
             int charaIndex = 0;
-            while (!token.IsCancellationRequested && charaIndex < atmp.textMeshPro.textInfo.characterCount) {
-                if (!atmp.isActiveAndEnabled) {
+            while (!token.IsCancellationRequested && charaIndex < tmpp.TextMeshPro.textInfo.characterCount) {
+                if (!tmpp.isActiveAndEnabled) {
                     yield return null;
                     continue;
                 }
 
-                charaIndex = atmp.textMeshPro.maxVisibleCharacters;
+                charaIndex = tmpp.TextMeshPro.maxVisibleCharacters;
 
                 if (indexInRange.Contains(charaIndex)) {
-                    atmp.delay = time;
+                    tmpp.Delay = time;
                     instance.changedIndex.Add(charaIndex);
                 } else if (!instance.changedIndex.Contains(charaIndex)) // 防止把其他范围的delay覆盖了
-                    atmp.delay = atmp.defaultDelay;
+                    tmpp.Delay = tmpp.defaultDelay;
 
-                yield return Pause(atmp.delay);
+                yield return Pause(tmpp.Delay);
 
             }
 
         }
-
-        /*static IEnumerator Shake(AnimateTMProUGUI atmp, float frequency = 15f, float amplitude = 1f, float phaseshift = 10f, CancellationToken token = default, List<(int start, int end)> ranges = null) {
-
-            TMP_TextInfo textInfo = atmp.textMeshPro.textInfo;
-            TMP_MeshInfo[] cachedMeshInfo = textInfo.CopyMeshInfoVertexData();
-
-            float startTime = Time.time;
-            float angle = Random.value * 2f * Mathf.PI; //把 0 ~ 1 的随机数映射到 0 ~ 2PI 的弧度
-
-            List<int> indexInRange = IndicesInRange(textInfo, ranges);
-
-            while (!token.IsCancellationRequested) {
-
-                if (atmp.hasTextChanged) {
-                    cachedMeshInfo = textInfo.CopyMeshInfoVertexData();
-                    atmp.hasTextChanged = false;
-                }
-
-                // 当 disable 时暂停本协程
-                if (!atmp.isActiveAndEnabled || textInfo.characterCount == 0) {
-                    yield return null;
-                    continue;
-                }
-
-                foreach (int i in indexInRange) {
-
-                    if (ranges == null || token.IsCancellationRequested)
-                        break;
-
-                    TMP_CharacterInfo characterInfo = textInfo.characterInfo[i];
-                    if (!characterInfo.isVisible) continue;
-
-                    Vector3 direction = new Vector3(Mathf.Cos(angle + i * phaseshift), Mathf.Sin(angle + i * phaseshift), 0f);
-                    float theta = (Time.time - startTime) * frequency * 2f * Mathf.PI; // 时间 * 频率 = 进度， 进度再映射到弧度，用作正弦函数的自变量
-
-                    float distance = Mathf.Sin(theta) * amplitude;
-
-                    Vector3 offset = direction * distance;
-
-                    int materialIndex = textInfo.characterInfo[i].materialReferenceIndex;
-                    int vertexIndex = textInfo.characterInfo[i].vertexIndex;
-
-                    Vector3[] srcVertices = cachedMeshInfo[materialIndex].vertices;
-
-                    // if (srcVertices == null) break;
-
-                    Vector3[] dstVertices = textInfo.meshInfo[materialIndex].vertices;
-
-                    dstVertices[vertexIndex] = srcVertices[vertexIndex] + offset;
-                    dstVertices[vertexIndex + 1] = srcVertices[vertexIndex + 1] + offset;
-                    dstVertices[vertexIndex + 2] = srcVertices[vertexIndex + 2] + offset;
-                    dstVertices[vertexIndex + 3] = srcVertices[vertexIndex + 3] + offset;
-
-                }
-
-                atmp.textMeshPro.UpdateVertexData(TMP_VertexDataUpdateFlags.Vertices);
-
-                // 每次完成一个频次就重新生成一个弧度
-                if (Time.time - startTime > 1f / frequency) {
-                    angle = Random.value * 2f * Mathf.PI;
-                    startTime = Time.time;
-                }
-                yield return null;
-            }
-        }*/
     #endregion
 
     }
@@ -312,7 +241,7 @@ namespace ATMPro {
                 argTypes[i] = parameterInfos[i].ParameterType;
                 defaultArgValues[i] = parameterInfos[i].HasDefaultValue ? parameterInfos[i].DefaultValue : null;
                 /*if (i == 0)
-                    needAnimateTMPro = argTypes[0] == typeof(AnimateTMProUGUI);*/
+                    needAnimateTMPro = argTypes[0] == typeof(TMProPlayer);*/
             }
 
         }
@@ -329,71 +258,20 @@ namespace ATMPro {
                 argTypes[i] = parameterInfos[i].ParameterType;
                 defaultArgValues[i] = parameterInfos[i].HasDefaultValue ? parameterInfos[i].DefaultValue : null;
                 /*if (i == 0)
-                    needAnimateTMPro = argTypes[0] == typeof(AnimateTMProUGUI);*/
+                    needAnimateTMPro = argTypes[0] == typeof(TMProPlayer);*/
             }
 
         }
 
-        /*IEnumerator Invoke(params string[] argStrings) {
-            object[] args = new object[argTypes.Length];
-            for (int i = 0; i < argTypes.Length; i++) {
-                // 转换标签填写时提供的参数
-                if (i < argStrings.Length) {
-
-                    args[i] = Convert.ChangeType(argStrings[i], argTypes[i]);
-                } else {
-                    // 没有填写的参数使用函数的默认值
-                    args[i] = defaultArgValues[i];
-                }
-            }
-
-            if (action == null) return func.Invoke(args);
-
-            action.Invoke(args);
-            return null;
-
-        }*/
-        /*internal IEnumerator Invoke(AnimateTMProUGUI atmp, CancellationToken token, params string[] argStrings) {
-            if (!needAnimateTMPro)
-                return Invoke(argStrings);
-
-            object[] args = new object[argTypes.Length];
-
-            int offset = 0;
-            for (var i = 0; i < argTypes.Length; i++) {
-
-                if (argTypes[i] == typeof(AnimateTMProUGUI)) {
-                    args[i] = atmp;
-                    offset++;
-                } else if (argTypes[i] == typeof(CancellationToken)) {
-                    args[i] = token;
-                    offset++;
-                } else if (i < argStrings.Length + offset) {
-
-                    args[i] = Convert.ChangeType(argStrings[i - offset], argTypes[i]);
-                } else {
-                    args[i] = defaultArgValues[i];
-                }
-            }
-            if (action == null) return func.Invoke(args);
-
-            // 把token生成到args里给action
-            // args[^1] = atmp.actionTokenSource.Token;
-            action.Invoke(args);
-            return null;
-        }*/
-
-        internal IEnumerator Invoke(AnimateTMProUGUI atmp, CancellationToken token, List<(int, int)> range, params string[] argStrings) {
-            /*if (!needAnimateTMPro)
-                return Invoke(argStrings);*/
+        internal IEnumerator Invoke(TMProPlayer tmpp, CancellationToken token, List<(int, int)> range, params string[] argStrings) {
 
             object[] args = new object[argTypes.Length];
 
             int offset = 0;
             for (int i = 0; i < argTypes.Length; i++) {
 
-                if (argTypes[i] == typeof(AnimateTMProUGUI)) {
-                    args[i] = atmp;
+                if (argTypes[i] == typeof(TMProPlayer)) {
+                    args[i] = tmpp;
                     offset++;
                 } else if (argTypes[i] == typeof(CancellationToken)) {
                     args[i] = token;

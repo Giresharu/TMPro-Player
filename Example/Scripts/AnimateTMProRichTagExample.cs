@@ -1,41 +1,45 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using ATMPro;
+using TMPP;
 using System.Threading;
 using TMPro;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
 public class AnimateTMProRichTagExample : AnimateTMProRichTagManager {
 
     protected override void Initialize() {
         base.Initialize();
-        SetActionInfo(args => StartCoroutine(Shake((AnimateTMProUGUI)args[0], (float)args[1], (float)args[2], (float)args[3], (CancellationToken)args[4], (List<(int, int)>)args[5])), "Shake", true, "shake", "Shake", "sh", "Sh");
-        SetActionInfo(args => StartCoroutine(Appear((AnimateTMProUGUI)args[0], (int)args[1], (CancellationToken)args[2], (List<(int, int)>)args[3])), "Appear", true, "appear", "Appear");
+        SetActionInfo(args => StartCoroutine(Shake((TMProPlayer)args[0], (float)args[1], (float)args[2], (float)args[3], (CancellationToken)args[4], (List<(int, int)>)args[5])), "Shake", true, "shake", "Shake", "sh", "Sh");
+        SetActionInfo(args => StartCoroutine(Appear((TMProPlayer)args[0], (int)args[1], (CancellationToken)args[2], (List<(int, int)>)args[3])), "Appear", true, "appear", "Appear");
+        SetActionInfo(args => StartCoroutine(Wave((TMProPlayer)args[0], (float)args[1], (float)args[2], (float)args[3], (CancellationToken)args[4], (List<(int, int)>)args[5])), "Wave", true, "Wave", "wave", "W", "w");
     }
 
     /* --- Action Region --- */
 #region Action Region
-    static IEnumerator Appear(AnimateTMProUGUI atmp, int time = 500, CancellationToken token = default, List<(int start, int end)> ranges = null) {
-        TMP_TextInfo textInfo = atmp.textMeshPro.textInfo;
+    static IEnumerator Appear(TMProPlayer tmpp, int time = 500, CancellationToken token = default, List<(int start, int end)> ranges = null) {
+        TMP_TextInfo textInfo = tmpp.TextMeshPro.textInfo;
 
         HashSet<int> isAppearInRange = IndicesInRangeHashSet(textInfo, ranges);
 
+        int lastVisibleCount = 0;
         while (isAppearInRange.Count > 0) {
-            int index = atmp.visibleCount - 1;
-            if (isAppearInRange.Contains(index)) {
-                isAppearInRange.Remove(index);
-                atmp.StartCoroutine(AppearAnimation(index));
+            while (lastVisibleCount < tmpp.VisibleCount) {
+                lastVisibleCount++;
+                if (isAppearInRange.Contains(lastVisibleCount - 1)) {
+
+                    isAppearInRange.Remove(lastVisibleCount - 1);
+                    tmpp.StartCoroutine(AppearAnimation(lastVisibleCount - 1));
+                }
             }
             yield return null;
         }
 
         IEnumerator AppearAnimation(int i) {
+            if (!textInfo.characterInfo[i].isVisible) yield break;
 
             float startTime = Time.time;
 
             while (!token.IsCancellationRequested) {
-
 
                 float alpha = Mathf.Clamp01((Time.time - startTime) * 1000 / time);
 
@@ -43,15 +47,16 @@ public class AnimateTMProRichTagExample : AnimateTMProRichTagManager {
                 int vertexIndex = textInfo.characterInfo[i].vertexIndex;
 
                 Color32[] dstColors = textInfo.meshInfo[materialIndex].colors32;
-                Color32[] srcColors = atmp.cachedMeshInfo[materialIndex].colors32;
+                Color32[] srcColors = tmpp.CachedMeshInfo[materialIndex].colors32;
 
                 dstColors[vertexIndex].a = (byte)Mathf.Clamp(srcColors[vertexIndex].a * alpha, 0, 255);
                 dstColors[vertexIndex + 1].a = (byte)Mathf.Clamp(srcColors[vertexIndex + 1].a * alpha, 0, 255);
                 dstColors[vertexIndex + 2].a = (byte)Mathf.Clamp(srcColors[vertexIndex + 2].a * alpha, 0, 255);
                 dstColors[vertexIndex + 3].a = (byte)Mathf.Clamp(srcColors[vertexIndex + 3].a * alpha, 0, 255);
 
-                // atmp.UpdateVertexData(TMP_VertexDataUpdateFlags.Colors32);
-                atmp.updateFlags |= TMP_VertexDataUpdateFlags.Colors32;
+                // tmpp.UpdateVertexData(TMP_VertexDataUpdateFlags.Colors32);
+                tmpp.AddUpdateFlags(TMP_VertexDataUpdateFlags.Colors32);
+                // tmpp.updateFlags |= TMP_VertexDataUpdateFlags.Colors32;
 
                 if (alpha >= 1) yield break;
 
@@ -62,11 +67,9 @@ public class AnimateTMProRichTagExample : AnimateTMProRichTagManager {
 
     }
 
+    static IEnumerator Shake(TMProPlayer tmpp, float frequency = 15f, float amplitude = 1f, float phaseshift = 10f, CancellationToken token = default, List<(int start, int end)> ranges = null) {
 
-
-    static IEnumerator Shake(AnimateTMProUGUI atmp, float frequency = 15f, float amplitude = 1f, float phaseshift = 10f, CancellationToken token = default, List<(int start, int end)> ranges = null) {
-
-        TMP_TextInfo textInfo = atmp.textMeshPro.textInfo;
+        TMP_TextInfo textInfo = tmpp.TextMeshPro.textInfo;
 
         float startTime = Time.time;
         float angle = Random.value * 2f * Mathf.PI; //把 0 ~ 1 的随机数映射到 0 ~ 2PI 的弧度
@@ -75,7 +78,7 @@ public class AnimateTMProRichTagExample : AnimateTMProRichTagManager {
 
         while (!token.IsCancellationRequested) {
             // 当 disable 时暂停本协程
-            if (!atmp.isActiveAndEnabled || textInfo.characterCount == 0) {
+            if (!tmpp.isActiveAndEnabled || textInfo.characterCount == 0) {
                 yield return null;
                 continue;
             }
@@ -97,7 +100,7 @@ public class AnimateTMProRichTagExample : AnimateTMProRichTagManager {
                 int materialIndex = textInfo.characterInfo[i].materialReferenceIndex;
                 int vertexIndex = textInfo.characterInfo[i].vertexIndex;
 
-                Vector3[] srcVertices = atmp.cachedMeshInfo[materialIndex].vertices;
+                Vector3[] srcVertices = tmpp.CachedMeshInfo[materialIndex].vertices;
 
                 // if (srcVertices == null) break;
 
@@ -110,13 +113,60 @@ public class AnimateTMProRichTagExample : AnimateTMProRichTagManager {
 
             }
 
-            if (atmp.textMeshPro.maxVisibleCharacters > 1) atmp.updateFlags |= TMP_VertexDataUpdateFlags.Vertices;
-            // atmp.UpdateVertexData(TMP_VertexDataUpdateFlags.Vertices);
-            // atmp.textMeshPro.UpdateVertexData(TMP_VertexDataUpdateFlags.Vertices);
+            if (tmpp.VisibleCount > 0) tmpp.AddUpdateFlags(TMP_VertexDataUpdateFlags.Vertices);
 
             // 每次完成一个频次就重新生成一个弧度
             if (Time.time - startTime > 1f / frequency) {
                 angle = Random.value * 2f * Mathf.PI;
+                startTime = Time.time;
+            }
+            yield return null;
+        }
+    }
+
+    static IEnumerator Wave(TMProPlayer tmpp, float frequency = 1f, float amplitude = 10f, float phaseshift = 0.1f, CancellationToken token = default, List<(int start, int end)> ranges = null) {
+        if (ranges == null) yield break;
+
+        TMP_TextInfo textInfo = tmpp.TextMeshPro.textInfo;
+
+        float startTime = Time.time;
+
+        List<int> indexInRange = IndicesInRange(textInfo, ranges);
+
+        while (!token.IsCancellationRequested) {
+
+            if (!tmpp.isActiveAndEnabled || textInfo.characterCount == 0) {
+                yield return null;
+                continue;
+            }
+
+            foreach (int i in indexInRange) {
+                if (token.IsCancellationRequested) break;
+
+                TMP_CharacterInfo characterInfo = textInfo.characterInfo[i];
+                if (!characterInfo.isVisible) continue;
+
+                float theta = ((Time.time - startTime) * frequency - phaseshift * i) * 2f * Mathf.PI;
+                float distance = Mathf.Sin(theta) * amplitude;
+                Vector3 offset = Vector3.up * distance;
+
+                int materialIndex = textInfo.characterInfo[i].materialReferenceIndex;
+                int vertexIndex = textInfo.characterInfo[i].vertexIndex;
+
+                Vector3[] srcVertices = tmpp.CachedMeshInfo[materialIndex].vertices;
+                Vector3[] dstVertices = textInfo.meshInfo[materialIndex].vertices;
+
+                dstVertices[vertexIndex] = srcVertices[vertexIndex] + offset;
+                dstVertices[vertexIndex + 1] = srcVertices[vertexIndex + 1] + offset;
+                dstVertices[vertexIndex + 2] = srcVertices[vertexIndex + 2] + offset;
+                dstVertices[vertexIndex + 3] = srcVertices[vertexIndex + 3] + offset;
+
+            }
+
+            if (tmpp.VisibleCount > 0) tmpp.AddUpdateFlags(TMP_VertexDataUpdateFlags.Vertices);
+
+
+            if (Time.time - startTime > 1f / frequency) {
                 startTime = Time.time;
             }
             yield return null;
