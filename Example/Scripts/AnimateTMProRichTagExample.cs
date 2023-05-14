@@ -22,11 +22,10 @@ public class AnimateTMProRichTagExample : AnimateTMProRichTagManager {
         HashSet<int> isAppearInRange = IndicesInRangeHashSet(textInfo, ranges);
 
         int lastVisibleCount = 0;
-        while (isAppearInRange.Count > 0) {
-            while (lastVisibleCount < tmpp.VisibleCount) {
+        while (isAppearInRange.Count > 0 && !token.IsCancellationRequested) {
+            while (lastVisibleCount < tmpp.VisibleCount && !token.IsCancellationRequested) {
                 lastVisibleCount++;
                 if (isAppearInRange.Contains(lastVisibleCount - 1)) {
-
                     isAppearInRange.Remove(lastVisibleCount - 1);
                     tmpp.StartCoroutine(AppearAnimation(lastVisibleCount - 1));
                 }

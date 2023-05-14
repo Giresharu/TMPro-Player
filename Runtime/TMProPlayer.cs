@@ -103,7 +103,7 @@ namespace TMPP {
 
                 int index = VisibleCount;
                 while (index < TextMeshPro.textInfo.characterCount) {
-                    if (index > 0) {
+                    if (index >= 0) {
                         if (TextMeshPro.textInfo.characterInfo[index].isVisible) {
 
                             int materialIndex = TextMeshPro.textInfo.characterInfo[index].materialReferenceIndex;
@@ -117,7 +117,7 @@ namespace TMPP {
                     }
                     index++;
                 }
-                AddUpdateFlags(TMP_VertexDataUpdateFlags.Colors32);
+                TextMeshPro.UpdateVertexData(TMP_VertexDataUpdateFlags.Colors32);
 
             }
 
@@ -136,7 +136,7 @@ namespace TMPP {
             if (!isAdditive) {
 
                 VisibleCount = 0; // 因为打字机携程无法判断是否增量更新，所以初始化要放到这里
-                typingIndex = 0;
+                lastInvokeIndex = 0;
 
                 (richTags, text) = ValidateRichTags(text, newline: newline);
                 TextMeshPro.SetText(text);
@@ -169,7 +169,7 @@ namespace TMPP {
             bool needDisplay = !CheckUpdateFlags(TMP_VertexDataUpdateFlags.Colors32);
 
             if (needDisplay) {
-                while (VisibleCount < TextMeshPro.textInfo.characterCount) {
+                while (VisibleCount <= TextMeshPro.textInfo.characterCount) {
                     if (VisibleCount > 0 && TextMeshPro.textInfo.characterInfo[VisibleCount - 1].isVisible) {
                         RemoveUpdateFlags(TMP_VertexDataUpdateFlags.Colors32);
                         DisplayCharacter();
@@ -179,7 +179,7 @@ namespace TMPP {
             } else VisibleCount = TextMeshPro.textInfo.characterCount;
 
             IsTyping = false;
-            typingIndex = TextMeshPro.text.Length - 1;
+            lastInvokeIndex = TextMeshPro.text.Length - 1;
             // TextMeshPro.UpdateVertexData(TMP_VertexDataUpdateFlags.Colors32);
         }
 
@@ -188,6 +188,7 @@ namespace TMPP {
         public char CurrentChar { get; private set; }
         public char LastChar { get; private set; }
         public char NextChar { get; private set; }
+        // public bool UseCustomCharacterDisplay { get; set; }
 
         void ShowText(bool isAdditive = false) {
             // 初始化
@@ -208,11 +209,11 @@ namespace TMPP {
                 if (!isAdditive || !IsTyping) StartCoroutine(TypeWriter(typeWriterTokenSource.Token));
             } else {
                 // typeWriterQueue.Clear();
-                while (VisibleCount < TextMeshPro.textInfo.characterCount) {
+                while (VisibleCount <= TextMeshPro.textInfo.characterCount) {
                     if (VisibleCount > 0 && TextMeshPro.textInfo.characterInfo[VisibleCount - 1].isVisible) DisplayCharacter();
                     VisibleCount++;
                 }
-                typingIndex = TextMeshPro.text.Length - 1;
+                lastInvokeIndex = TextMeshPro.text.Length - 1;
                 // AddUpdateFlags(TMP_VertexDataUpdateFlags.Colors32);
 
             }
@@ -220,6 +221,7 @@ namespace TMPP {
             // 触发成对 Action
             foreach ((ActionInfo actionInfo, string[] value) tuple in pairedActions.Keys)
                 tuple.actionInfo.Invoke(this, actionTokenSource.Token, pairedActions[tuple], tuple.value);
+
         }
 
 
@@ -246,11 +248,11 @@ namespace TMPP {
 
         public bool IsTyping { get; private set; }
         public int VisibleCount { get; private set; }
-        int typingIndex;
+        int lastInvokeIndex;
 
         IEnumerator TypeWriter(CancellationToken token) {
             IsTyping = true;
-            while (VisibleCount < TextMeshPro.textInfo.characterCount && !token.IsCancellationRequested) {
+            while (VisibleCount <= TextMeshPro.textInfo.characterCount && !token.IsCancellationRequested) {
 
                 if (!isActiveAndEnabled) {
                     yield return null;
@@ -258,24 +260,6 @@ namespace TMPP {
                 }
 
                 DisplayCharacter();
-
-                // 解决会被自动隐藏的 tmp 自带标签不被算进 character 但是有被我们用来计算了 action 的 start 以及 end 的问题；
-                // 当目前遍历到的 typingIndex 不能与当前 visible 的最后一个 character 的 index 匹配时；
-                // 就一边递增 typingIndex 一边把对应的 action 执行掉
-                while (TextMeshPro.textInfo.characterCount > VisibleCount && typingIndex <= TextMeshPro.textInfo.characterInfo[VisibleCount].index) {
-
-                    if (singleActions.TryGetValue(typingIndex, out var tuples)) {
-                        for (int i = 0; i < tuples.Count; i++) {
-                            // 排队进行打字机效果的过程中如果非增量而切换到下一句时，会刷新掉所有 singleActions
-                            // 应该终止整个携程
-                            if (token.IsCancellationRequested)
-                                yield break;
-
-                            yield return tuples[i].actionInfo.Invoke(this, actionTokenSource.Token, null, tuples[i].value);
-                        }
-                    }
-                    typingIndex++;
-                }
 
                 LastChar = CurrentChar;
                 CurrentChar = VisibleCount != 0 ? TextMeshPro.textInfo.characterInfo[VisibleCount - 1].character : '\0';
@@ -286,12 +270,48 @@ namespace TMPP {
                     float startTime = Time.time;
                     while ((Time.time - startTime) * 1000 < Delay && !token.IsCancellationRequested)
                         yield return null;
-                    if (token.IsCancellationRequested) break;
+                    if (token.IsCancellationRequested) {
+                        IsTyping = false;
+                        yield break;
+                        
+                    }
+                }
+
+                // 解决会被自动隐藏的 tmp 自带标签不被算进 character 但是有被我们用来计算了 action 的 start 以及 end 的问题；
+                // 当目前遍历到的 lastInvokeIndex 不能与当前 visible 的最后一个 character 的 index 匹配时；
+                // 就一边递增 lastInvokeIndex 一边把对应的 action 执行掉
+                while ((VisibleCount < TextMeshPro.textInfo.characterCount && lastInvokeIndex <= TextMeshPro.textInfo.characterInfo[VisibleCount].index) ||
+                       (VisibleCount == TextMeshPro.textInfo.characterCount && lastInvokeIndex <= TextMeshPro.text.Length)) { // 当所有文字都显示完毕后，还要继续触发后面的标签
+
+                    if (singleActions.TryGetValue(lastInvokeIndex, out var tuples)) {
+                        for (int i = 0; i < tuples.Count; i++) {
+                            // 排队进行打字机效果的过程中如果非增量而切换到下一句时，会刷新掉所有 singleActions
+                            // 应该终止整个携程
+                            if (token.IsCancellationRequested) {
+                                IsTyping = false;
+                                yield break;
+                        
+                            }
+
+                            yield return tuples[i].actionInfo.Invoke(this, actionTokenSource.Token, null, tuples[i].value);
+                            // 防止暂停的过程中被取消，导致后续还被执行，所以再检查一次
+                            if (token.IsCancellationRequested) {
+                                IsTyping = false;
+                                yield break;
+                        
+                            }
+
+                        }
+                    }
+                    lastInvokeIndex++;
                 }
 
                 VisibleCount++;
-
             }
+
+            if (VisibleCount > TextMeshPro.textInfo.characterCount) VisibleCount = TextMeshPro.textInfo.characterCount;
+            if (lastInvokeIndex >= TextMeshPro.text.Length) lastInvokeIndex = TextMeshPro.text.Length;
+
             IsTyping = false;
         }
 
