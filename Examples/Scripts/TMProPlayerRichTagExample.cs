@@ -5,7 +5,7 @@ using System.Threading;
 using TMPro;
 using UnityEngine;
 
-public class AnimateTMProRichTagExample : AnimateTMProRichTagManager {
+public class TMProPlayerRichTagExample : AnimateTMProRichTagManager {
 
     protected override void Initialize() {
         base.Initialize();
