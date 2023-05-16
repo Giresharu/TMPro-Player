@@ -180,7 +180,7 @@ namespace TMPP {
             }
             return indexInRange;
         }
-        
+
     #region Action Region
         static IEnumerator Pause(int time = 500, CancellationToken token = default) {
             float startTime = Time.time;
@@ -193,25 +193,27 @@ namespace TMPP {
         static IEnumerator Delay(TMProPlayer tmpp, int time = 50, List<(int start, int end)> ranges = null, CancellationToken token = default) {
 
             if (!tmpp.isTypeWriter) yield break;
-            
+
             List<int> indexInRange = IndicesInRange(tmpp.TextMeshPro.textInfo, ranges, false, false);
 
-            int charaIndex = 0;
-            while (!token.IsCancellationRequested && charaIndex < tmpp.TextMeshPro.textInfo.characterCount) {
+            // int charaIndex = 0;
+            int lastVisibleCount = tmpp.VisibleCount - 1;
+            while (!token.IsCancellationRequested && lastVisibleCount < tmpp.TextMeshPro.textInfo.characterCount) {
                 if (!tmpp.isActiveAndEnabled) {
                     yield return null;
                     continue;
                 }
 
-                charaIndex = tmpp.VisibleCount;
+                if (lastVisibleCount < tmpp.VisibleCount) {
+                    lastVisibleCount++;
 
-                if (indexInRange.Contains(charaIndex)) {
-                    tmpp.Delay = time;
-                    instance.changedIndex.Add(charaIndex);
-                } else if (!instance.changedIndex.Contains(charaIndex)) // 防止把其他范围的delay覆盖了
-                    tmpp.Delay = tmpp.defaultDelay;
-
-                yield return Pause(tmpp.Delay);
+                    if (indexInRange.Contains(lastVisibleCount)) {
+                        tmpp.Delay = time;
+                        instance.changedIndex.Add(lastVisibleCount);
+                    } else if (!instance.changedIndex.Contains(lastVisibleCount)) // 防止把其他范围的delay覆盖了
+                        tmpp.Delay = tmpp.defaultDelay;
+                }
+                yield return null;
 
             }
 

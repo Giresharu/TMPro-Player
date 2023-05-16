@@ -27,15 +27,14 @@ namespace TMPP {
 
         Queue<RichTagInfo> richTags;
 
+        // BUG 从Disable复原后会导致所有文字都显示出来
         void OnEnable() {
             // TMPro_EventManager.TEXT_CHANGED_EVENT.Add(OnTextChanged);
-
             if (IsTyping) StartCoroutine(TypeWriter(typeWriterTokenSource.Token));
-
         }
 
         /*void OnDisable() {
-            TMPro_EventManager.TEXT_CHANGED_EVENT.Remove(OnTextChanged);
+            // TMPro_EventManager.TEXT_CHANGED_EVENT.Remove(OnTextChanged);
         }*/
 
         void Start() {
@@ -45,6 +44,7 @@ namespace TMPP {
             }
 
         }
+
         void OnDestroy() {
             if (actionTokenSource is not { IsCancellationRequested: false }) return;
 
@@ -276,7 +276,9 @@ namespace TMPP {
                     // Debug.Log(CurrentChar);
                     float startTime = Time.time;
                     while ((Time.time - startTime) * 1000 < Delay && !token.IsCancellationRequested)
-                        yield return null;
+                        // yield return null;
+                        yield return new WaitForEndOfFrame();
+
                     if (token.IsCancellationRequested) {
                         IsTyping = false;
                         yield break;
@@ -342,7 +344,7 @@ namespace TMPP {
             sb.Append(text);
             sb.Append(closeStyle);
 
-            MatchCollection matches = Regex.Matches(sb.ToString(), @"<(/?[a-zA-Z0-9]+ *)[=]*(?<value> *[a-fA-F0-9.%]+ *)*(?:,(?<value> *[a-fA-F0-9.%]+ *))*>");
+            MatchCollection matches = Regex.Matches(sb.ToString(), @"<(/?[a-zA-Z0-9]+ *)[=]*(?<value> *[a-zA-Z0-9.%]+ *)*(?:,(?<value> *[a-zA-Z0-9.%]+ *))*>");
             int cutSize = 0 - offset;
 
             foreach (Match match in matches) {

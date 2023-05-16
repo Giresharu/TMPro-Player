@@ -10,8 +10,8 @@ public class TMProPlayerRichTagExample : AnimateTMProRichTagManager {
     protected override void Initialize() {
         base.Initialize();
         SetActionInfo(args => StartCoroutine(Shake((TMProPlayer)args[0], (float)args[1], (float)args[2], (float)args[3], (CancellationToken)args[4], (List<(int, int)>)args[5])), "Shake", true, "shake", "Shake", "sh", "Sh");
-        SetActionInfo(args => StartCoroutine(Appear((TMProPlayer)args[0], (int)args[1], (CancellationToken)args[2], (List<(int, int)>)args[3])), "Appear", true, "appear", "Appear");
-        SetActionInfo(args => StartCoroutine(Wave((TMProPlayer)args[0], (float)args[1], (float)args[2], (float)args[3], (CancellationToken)args[4], (List<(int, int)>)args[5])), "Wave", true, "Wave", "wave", "W", "w");
+        SetActionInfo(args => StartCoroutine(Appear((TMProPlayer)args[0], (int)args[1], (CancellationToken)args[2], (List<(int, int)>)args[3])), "Appear", true, "appear", "Appear","Ap","ap");
+        SetActionInfo(args => StartCoroutine(Wave((TMProPlayer)args[0], (float)args[1], (float)args[2], (float)args[3], (CancellationToken)args[4], (List<(int, int)>)args[5])), "Wave", true, "Wave", "wave", "Wa", "wa");
     }
 
     /* --- Action Region --- */
