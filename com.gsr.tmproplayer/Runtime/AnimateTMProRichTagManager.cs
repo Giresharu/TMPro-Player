@@ -6,7 +6,7 @@ using System.Threading;
 using TMPro;
 using UnityEngine;
 
-namespace TMPP {
+namespace TMPPlayer {
 
     public class AnimateTMProRichTagManager : MonoBehaviour {
 

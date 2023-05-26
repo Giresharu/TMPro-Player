@@ -7,7 +7,7 @@ using System.Threading;
 using TMPro;
 using UnityEngine;
 
-namespace TMPP {
+namespace TMPPlayer {
 
     [RequireComponent(typeof(TMP_Text))]
     public class TMProPlayer : MonoBehaviour {
@@ -26,14 +26,33 @@ namespace TMPP {
         CancellationTokenSource typeWriterTokenSource;
 
         Queue<RichTagInfo> richTags;
+        
+        TMP_MeshInfo[] cachedMeshInfo;
+        public TMP_MeshInfo[] CachedMeshInfo { get { return cachedMeshInfo; } }
+        
+        TMP_VertexDataUpdateFlags updateFlags = TMP_VertexDataUpdateFlags.None;
+        
+        int lastInvokeIndex;
 
-        // BUG 从Disable复原后会导致所有文字都显示出来
-        void OnEnable() {
+        public int Delay { get; set; }
+        public TMP_Text TextMeshPro { get; private set; }
+        public TMP_CharacterInfo CurrentChar { get; private set; }
+        public TMP_CharacterInfo LastChar { get; private set; }
+        public TMP_CharacterInfo NextChar { get; private set; }
+        // public bool UseCustomCharacterDisplay { get; set; }
+        
+        public bool IsTyping { get; private set; }
+        public int VisibleCount { get; private set; }
+
+
+        // BUG 从Disable复原 TMP 后会强制刷新所有 mesh 显示所有文字，暂时找不到解决办法
+        /*void OnEnable() {
             // TMPro_EventManager.TEXT_CHANGED_EVENT.Add(OnTextChanged);
             if (IsTyping) StartCoroutine(TypeWriter(typeWriterTokenSource.Token));
-        }
+        }*/
 
         /*void OnDisable() {
+            Debug.Log(this);
             // TMPro_EventManager.TEXT_CHANGED_EVENT.Remove(OnTextChanged);
         }*/
 
@@ -61,12 +80,7 @@ namespace TMPP {
             if ((TextMeshProUGUI)obj == textMeshPro) {
             }
         }*/
-
-        TMP_MeshInfo[] cachedMeshInfo;
-        TMP_VertexDataUpdateFlags updateFlags = TMP_VertexDataUpdateFlags.None;
-
-        public TMP_MeshInfo[] CachedMeshInfo { get { return cachedMeshInfo; } }
-
+        
         public void AddUpdateFlags(TMP_VertexDataUpdateFlags updateFlag) {
             updateFlags |= updateFlag;
         }
@@ -114,6 +128,7 @@ namespace TMPP {
                             meshInfo[materialIndex].colors32[vertexCount + 2].a = 0;
                             meshInfo[materialIndex].colors32[vertexCount + 3].a = 0;
 
+                            // 下面的注释是用于测试，以黑色来表示还未显示的文字
                             /*meshInfo[materialIndex].colors32[vertexCount] = new Color32(0, 0, 0, 255);
                             meshInfo[materialIndex].colors32[vertexCount + 1] = new Color32(0, 0, 0, 255);
                             meshInfo[materialIndex].colors32[vertexCount + 2] = new Color32(0, 0, 0, 255);
@@ -137,6 +152,12 @@ namespace TMPP {
             updateFlags = 0;
         }
 
+        /// <summary>
+        /// 设置文本
+        /// </summary>
+        /// <param name="text">设置的文本内容</param>
+        /// <param name="isAdditive">是否增量更新</param>
+        /// <param name="newline">是否另起一行</param>
         public void SetText(string text, bool isAdditive = false, bool newline = false) {
             if (TextMeshPro == null) TextMeshPro = GetComponent<TextMeshProUGUI>();
 
@@ -166,6 +187,9 @@ namespace TMPP {
             ShowText(isAdditive);
         }
 
+        /// <summary>
+        /// 跳过当前打字机效果
+        /// </summary>
         public void Skip() {
             if (typeWriterTokenSource is not { IsCancellationRequested: false }) return;
 
@@ -189,13 +213,7 @@ namespace TMPP {
             lastInvokeIndex = TextMeshPro.text.Length - 1;
             // TextMeshPro.UpdateVertexData(TMP_VertexDataUpdateFlags.Colors32);
         }
-
-        public TMP_Text TextMeshPro { get; private set; }
-        public int Delay { get; set; }
-        public TMP_CharacterInfo CurrentChar { get; private set; }
-        public TMP_CharacterInfo LastChar { get; private set; }
-        public TMP_CharacterInfo NextChar { get; private set; }
-        // public bool UseCustomCharacterDisplay { get; set; }
+        
 
         void ShowText(bool isAdditive = false) {
             // 初始化
@@ -253,10 +271,6 @@ namespace TMPP {
 
         }
 
-        public bool IsTyping { get; private set; }
-        public int VisibleCount { get; private set; }
-        int lastInvokeIndex;
-
         IEnumerator TypeWriter(CancellationToken token) {
             IsTyping = true;
             while (VisibleCount <= TextMeshPro.textInfo.characterCount && !token.IsCancellationRequested) {
@@ -266,11 +280,11 @@ namespace TMPP {
                     continue;
                 }
 
-                DisplayCharacter();
-
                 LastChar = VisibleCount > 1 ? CurrentChar : new TMP_CharacterInfo { character = '\0' };
-                CurrentChar = VisibleCount != 0 ? TextMeshPro.textInfo.characterInfo[VisibleCount - 1] : new TMP_CharacterInfo { character = '\0' };
-                NextChar = VisibleCount != TextMeshPro.textInfo.characterCount ? TextMeshPro.textInfo.characterInfo[VisibleCount] : new TMP_CharacterInfo { character = '\0' };
+                CurrentChar = VisibleCount > 0 ? TextMeshPro.textInfo.characterInfo[VisibleCount - 1] : new TMP_CharacterInfo { character = '\0' };
+                NextChar = VisibleCount <= TextMeshPro.textInfo.characterCount ? TextMeshPro.textInfo.characterInfo[VisibleCount] : new TMP_CharacterInfo { character = '\0' };
+
+                DisplayCharacter();
 
                 if (VisibleCount > 0 /*&& ShouldDelay(CurrentChar)*/ && TextMeshPro.textInfo.characterInfo[VisibleCount - 1].isVisible) {
                     // Debug.Log(CurrentChar);
