@@ -399,7 +399,7 @@ namespace TMPPlayer {
                     }
                 } else {
                     RichTagInfo richTag = new RichTagInfo();
-                    if (!AnimateTMProRichTagManager.TryGetActionInfo(effectStr, out ActionInfo actionInfo)) continue;
+                    if (!TMPPlayerRichTagManager.TryGetActionInfo(effectStr, out ActionInfo actionInfo)) continue;
 
                     richTag.type = effectStr;
                     richTag.startIndex = tagIndex - cutSize;
@@ -437,10 +437,10 @@ namespace TMPPlayer {
                     if (!singleActions.ContainsKey(richTagInfo.startIndex))
                         singleActions[richTagInfo.startIndex] = new List<(ActionInfo actionInfo, string[] value)>();
 
-                    singleActions[richTagInfo.startIndex].Add((AnimateTMProRichTagManager.GetActionInfo(richTagInfo.type), richTagInfo.value));
+                    singleActions[richTagInfo.startIndex].Add((TMPPlayerRichTagManager.GetActionInfo(richTagInfo.type), richTagInfo.value));
 
                 } else {
-                    ActionInfo actionInfo = AnimateTMProRichTagManager.GetActionInfo(richTagInfo.type);
+                    ActionInfo actionInfo = TMPPlayerRichTagManager.GetActionInfo(richTagInfo.type);
                     if (!pairedActions.ContainsKey((actionInfo, richTagInfo.value)))
                         pairedActions.Add((actionInfo, richTagInfo.value), new List<(int start, int end)>());
 

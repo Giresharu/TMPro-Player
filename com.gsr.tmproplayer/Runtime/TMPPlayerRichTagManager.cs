@@ -8,9 +8,9 @@ using UnityEngine;
 
 namespace TMPPlayer {
 
-    public class AnimateTMProRichTagManager : MonoBehaviour {
+    public class TMPPlayerRichTagManager : MonoBehaviour {
 
-        static AnimateTMProRichTagManager instance;
+        static TMPPlayerRichTagManager instance;
 
         readonly Dictionary<string, ActionInfo> actionInfos = new Dictionary<string, ActionInfo>();
 
