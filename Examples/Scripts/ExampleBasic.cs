@@ -1,5 +1,5 @@
 using System;
-using TMPP;
+using TMPPlayer;
 using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.UI;

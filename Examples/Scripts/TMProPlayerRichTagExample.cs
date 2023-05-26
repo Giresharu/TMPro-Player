@@ -1,6 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using TMPP;
+using TMPPlayer;
 using System.Threading;
 using TMPro;
 using UnityEngine;
