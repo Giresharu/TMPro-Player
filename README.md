@@ -1,6 +1,6 @@
 TMPro Player
 ===
-[![Releases](https://img.shields.io/github/v/release/Giresharu/TMPro-Player.svg)](https://github.com/Giresharu/TMPro-Player/releases/tag/1.0.0)
+[![Releases](https://img.shields.io/github/v/release/Giresharu/TMPro-Player.svg)](https://github.com/Giresharu/TMPro-Player/releases/tag/1.0.0) [![openupm](https://img.shields.io/npm/v/com.gsr.tmproplayer?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.gsr.tmproplayer/)
 
 TMPro Player 是一款基于 TextMeshPro 的富文本标签管理插件，实现自定义富文本标签功能。
 
@@ -12,6 +12,7 @@ TMPro Player 是一款基于 TextMeshPro 的富文本标签管理插件，实现
 
 - [依赖](#依赖)
 - [安装](#安装)
+  - [通过 OpenUPM 安装](#通过-openupm-安装)
   - [通过 git URL 安装](#通过-git-url-安装)
 - [TMProPlayer 类](#tmproplayer-类)
   - [SetText](#settext)
@@ -28,6 +29,14 @@ TMPro Player 是一款基于 TextMeshPro 的富文本标签管理插件，实现
 
 安装
 ---
+
+### 通过 OpenUPM 安装
+
+在项目根目录使用命令：
+
+```
+openupm add com.gsr.tmproplayer
+```
 
 ### 通过 git URL 安装
 
