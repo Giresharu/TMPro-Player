@@ -26,12 +26,12 @@ namespace TMPPlayer {
         CancellationTokenSource typeWriterTokenSource;
 
         Queue<RichTagInfo> richTags;
-        
+
         TMP_MeshInfo[] cachedMeshInfo;
         public TMP_MeshInfo[] CachedMeshInfo { get { return cachedMeshInfo; } }
-        
+
         TMP_VertexDataUpdateFlags updateFlags = TMP_VertexDataUpdateFlags.None;
-        
+
         int lastInvokeIndex;
 
         public int Delay { get; set; }
@@ -40,7 +40,7 @@ namespace TMPPlayer {
         public TMP_CharacterInfo LastChar { get; private set; }
         public TMP_CharacterInfo NextChar { get; private set; }
         // public bool UseCustomCharacterDisplay { get; set; }
-        
+
         public bool IsTyping { get; private set; }
         public int VisibleCount { get; private set; }
 
@@ -80,7 +80,7 @@ namespace TMPPlayer {
             if ((TextMeshProUGUI)obj == textMeshPro) {
             }
         }*/
-        
+
         public void AddUpdateFlags(TMP_VertexDataUpdateFlags updateFlag) {
             updateFlags |= updateFlag;
         }
@@ -114,7 +114,6 @@ namespace TMPPlayer {
             }
             // 判断打字机效果隐藏文字
             if (isTypeWriter) {
-
                 int index = isAdditive ? VisibleCount : 0;
                 while (index < TextMeshPro.textInfo.characterCount) {
                     if (index >= 0) {
@@ -213,7 +212,7 @@ namespace TMPPlayer {
             lastInvokeIndex = TextMeshPro.text.Length - 1;
             // TextMeshPro.UpdateVertexData(TMP_VertexDataUpdateFlags.Colors32);
         }
-        
+
 
         void ShowText(bool isAdditive = false) {
             // 初始化
@@ -251,7 +250,6 @@ namespace TMPPlayer {
 
 
         void DisplayCharacter() {
-
             // 有时打字机协程会晚于其他协程执行，可能会覆盖掉其他协程对颜色的修改，所以一旦检测到已经修改过颜色，就不要继续去覆盖颜色了；
             if (VisibleCount <= 0 || !TextMeshPro.textInfo.characterInfo[VisibleCount - 1].isVisible || (updateFlags & TMP_VertexDataUpdateFlags.Colors32) != 0)
                 return;
@@ -450,7 +448,6 @@ namespace TMPPlayer {
         }
 
         class ActionInfoComparer : IEqualityComparer<(ActionInfo actionInfo, string[] value)> {
-
             public bool Equals((ActionInfo actionInfo, string[] value) x, (ActionInfo actionInfo, string[] value) y) {
                 if (x.actionInfo != y.actionInfo) return false;
                 if (x.value.Equals(y.value)) return true;
@@ -478,6 +475,14 @@ namespace TMPPlayer {
                 return hash;
             }
         }
+
+    }
+
+    internal struct RichTagInfo {
+        internal string type;
+        internal int startIndex;
+        internal int endIndex;
+        internal string[] value;
 
     }
 }
