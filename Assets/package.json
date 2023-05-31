@@ -1,9 +1,9 @@
 {
   "name": "com.gsr.tmproplayer",
   "displayName": "TMPro Player",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "unity": "2020.1",
-  "description": "TMPro 专用的富文本标签处理插件",
+  "description": "基于 TextMeshPro 的自定义富文本标签插件",
   "keywords": [
     "TextMeshPro",
     "TextMesh Pro",
