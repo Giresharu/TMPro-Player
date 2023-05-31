@@ -222,7 +222,7 @@ namespace TMPPlayer {
 
     }
 
-    public class ActionInfo {
+    internal class ActionInfo {
         readonly Type[] argTypes;
         readonly object[] defaultArgValues;
         internal bool IsPaired { get; }
@@ -231,7 +231,7 @@ namespace TMPPlayer {
         readonly Action<object[]> action;
         readonly Func<object[], IEnumerator> func;
 
-        public ActionInfo(Action<object[]> action, MethodInfo methodInfo, bool isPaired) {
+        internal ActionInfo(Action<object[]> action, MethodInfo methodInfo, bool isPaired) {
             this.action = action;
             IsPaired = isPaired;
             ParameterInfo[] parameterInfos = methodInfo.GetParameters();
@@ -248,7 +248,7 @@ namespace TMPPlayer {
         }
 
         // 需要返回协程的时候改用 Func 
-        public ActionInfo(Func<object[], IEnumerator> func, MethodInfo methodInfo, bool isPaired) {
+        internal ActionInfo(Func<object[], IEnumerator> func, MethodInfo methodInfo, bool isPaired) {
             this.func = func;
             IsPaired = isPaired;
             ParameterInfo[] parameterInfos = methodInfo.GetParameters();
