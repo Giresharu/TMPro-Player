@@ -1,12 +1,16 @@
 TMPro Player
 ===
-[![Releases](https://img.shields.io/github/v/release/Giresharu/TMPro-Player.svg)](https://github.com/Giresharu/TMPro-Player/releases/tag/1.0.1) [![openupm](https://img.shields.io/npm/v/com.gsr.tmproplayer?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.gsr.tmproplayer/) [![LICENSE](https://img.shields.io/github/license/Giresharu/TMPro-Player.svg)]()
+[![Releases](https://img.shields.io/github/v/release/Giresharu/TMPro-Player.svg)](https://github.com/Giresharu/TMPro-Player/releases/latest) [![openupm](https://img.shields.io/npm/v/com.gsr.tmproplayer?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.gsr.tmproplayer/) [![LICENSE](https://img.shields.io/github/license/Giresharu/TMPro-Player)](./LICENSE.md)
 
 TMPro Player 是一款基于 TextMeshPro 的富文本标签管理插件，实现自定义富文本标签功能。
 
 * 内置打字机效果，可以通过标签控制打字机效果的暂停与速度；
 * 实现解析标签功能，用户只需要手动添加标签的定义以及标签要执行的效果的实现；
 * 与 TextMeshPro 的内置标签兼容，当用户定义的标签与其相同时，则以用户定义为优先。
+
+更新日志
+---
+点击查看[CHANGELOG](./CHANGELOG.md)
 
 ## 目录
 
@@ -40,12 +44,14 @@ TMPro Player 是一款基于 TextMeshPro 的富文本标签管理插件，实现
 ```shell
 openupm add com.gsr.tmproplayer
 ```
+若要指定版本，请在指令 package 名称后加上 \`@tag号\` ，如 \`@1.0.0\` 。
 
 ### 通过 git URL 安装
 
 在 Unity 引擎中，打开 `Package Manager` ，点击左上角的 `+` ，选择 `Add package from git URL` ，然后输入本项目的 git 地址即可： 
 `https://github.com/Giresharu/TMPro-Player.git?path=Assets` 。
 
+若要指定版本，请在地址最后加上 \`@tag号\` ，如 \`#1.0.0\` 。 
 
 TMProPlayer 类
 ---
