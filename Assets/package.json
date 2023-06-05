@@ -11,5 +11,8 @@
     "Text",
     "SDF"
   ],
-  "category": "Text Rendering"
+  "category": "Text Rendering",
+  "repository": {
+    "url": "https://github.com/Giresharu/TMPro-Player.git"
+  }
 }
