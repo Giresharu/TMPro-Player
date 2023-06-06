@@ -331,8 +331,9 @@ namespace TMPPlayer {
                                 yield break;
                             }
 
-                            //TODO 应该防止返回null的时候被yield return 导致延迟一帧 优先级：
-                            yield return tuples[i].actionInfo.Invoke(this, actionTokenSource.Token, null, tuples[i].value);
+                            //防止返回null的时候被yield return 延迟一帧
+                            IEnumerator coroutine = tuples[i].actionInfo.Invoke(this, actionTokenSource.Token, null, tuples[i].value);
+                            if (coroutine != null) yield return coroutine;
                             // 防止暂停的过程中被取消，导致后续还被执行，所以再检查一次
                             if (token.IsCancellationRequested) {
                                 IsTyping = false;
