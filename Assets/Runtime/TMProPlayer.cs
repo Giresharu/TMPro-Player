@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -189,7 +190,8 @@ namespace TMPPlayer {
         /// <summary>
         /// 跳过当前打字机效果
         /// </summary>
-        public void Skip() {
+        /// <param name="invokeSingleActions"> 是否需要执行跳过的文字中的单个标签 </param>
+        public void Skip(bool invokeSingleActions = true) {
             if (typeWriterTokenSource is not { IsCancellationRequested: false }) return;
 
             typeWriterTokenSource.Cancel();
@@ -204,6 +206,22 @@ namespace TMPPlayer {
                         RemoveUpdateFlags(TMP_VertexDataUpdateFlags.Colors32);
                         DisplayCharacter();
                     }
+
+                    //TODO 可能需要更多测试
+                    while (invokeSingleActions && (VisibleCount < TextMeshPro.textInfo.characterCount && lastInvokeIndex <= TextMeshPro.textInfo.characterInfo[VisibleCount].index) || (VisibleCount == TextMeshPro.textInfo.characterCount && lastInvokeIndex <= TextMeshPro.text.Length)) {
+
+                        if (singleActions.TryGetValue(lastInvokeIndex, out var tuples)) {
+                            for (int i = 0; i < tuples.Count; i++) {
+
+                                IEnumerator coroutine = tuples[i].actionInfo.Invoke(this, actionTokenSource.Token, null, tuples[i].value);
+                                if (coroutine != null) StartCoroutine(coroutine);
+
+                            }
+                        }
+                        lastInvokeIndex++;
+                    }
+
+
                     VisibleCount++;
                 }
             } else VisibleCount = TextMeshPro.textInfo.characterCount;
@@ -313,6 +331,7 @@ namespace TMPPlayer {
                                 yield break;
                             }
 
+                            //TODO 应该防止返回null的时候被yield return 导致延迟一帧 优先级：
                             yield return tuples[i].actionInfo.Invoke(this, actionTokenSource.Token, null, tuples[i].value);
                             // 防止暂停的过程中被取消，导致后续还被执行，所以再检查一次
                             if (token.IsCancellationRequested) {
