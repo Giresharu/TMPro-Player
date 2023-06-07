@@ -194,7 +194,7 @@ namespace TMPPlayer {
 
             if (!tmpp.isTypeWriter) yield break;
 
-            List<int> indexInRange = IndicesInRange(tmpp.TextMeshPro.textInfo, ranges, false, false);
+            HashSet<int> indexInRange = IndicesInRangeHashSet(tmpp.TextMeshPro.textInfo, ranges, false, false);
 
             // int charaIndex = 0;
             int lastVisibleCount = tmpp.VisibleCount - 1;
@@ -208,6 +208,7 @@ namespace TMPPlayer {
                     lastVisibleCount++;
 
                     if (indexInRange.Contains(lastVisibleCount)) {
+                        indexInRange.Remove(lastVisibleCount);
                         tmpp.Delay = time;
                         instance.changedIndex.Add(lastVisibleCount);
                     } else if (!instance.changedIndex.Contains(lastVisibleCount)) // 防止把其他范围的delay覆盖了
