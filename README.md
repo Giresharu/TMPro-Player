@@ -1,5 +1,6 @@
-jkljsdlkfjlksjdfklj lksdjflk sdf sdf 
-
+TMPro Player
+===
+[![Releases](https://img.shields.io/github/v/release/Giresharu/TMPro-Player.svg)](https://github.com/Giresharu/TMPro-Player/releases/latest) [![openupm](https://img.shields.io/npm/v/com.gsr.tmproplayer?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.gsr.tmproplayer/) [![LICENSE](https://img.shields.io/github/license/Giresharu/TMPro-Player)](./LICENSE.md)
 
 TMPro Player 是一款基于 TextMeshPro 的富文本标签管理插件，实现自定义富文本标签功能。
 
