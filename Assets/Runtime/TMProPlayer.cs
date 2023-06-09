@@ -12,10 +12,11 @@ namespace TMPPlayer {
     [RequireComponent(typeof(TMP_Text))]
     public class TMProPlayer : MonoBehaviour {
 
-        public bool isTypeWriter;
+        public bool isTypeWriter = true;
         public string openStyle;
         public string closeStyle;
-        public int defaultDelay;
+        public int defaultDelay = 75;
+        public float timeScale = 1;
         // public char[] delayBlackList;
 
         readonly Dictionary<int, List<(ActionInfo actionInfo, string[] value)>> singleActions = new Dictionary<int, List<(ActionInfo actionInfo, string[] value)>>();
@@ -388,7 +389,7 @@ namespace TMPPlayer {
                 if (VisibleCount > 0 /*&& ShouldDelay(CurrentChar)*/ && TextMeshPro.textInfo.characterInfo[VisibleCount - 1].isVisible) {
                     // Debug.Log(CurrentChar);
                     float startTime = Time.time;
-                    while ((Time.time - startTime) * 1000 < Delay && !token.IsCancellationRequested)
+                    while ((Time.time - startTime) * 1000 < Delay / timeScale && !token.IsCancellationRequested)
                         // yield return null;
                         yield return new WaitForEndOfFrame();
 
