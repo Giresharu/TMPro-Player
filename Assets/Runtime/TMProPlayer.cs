@@ -391,7 +391,7 @@ namespace TMPPlayer {
                     float startTime = Time.time;
                     while ((Time.time - startTime) * 1000 < Delay / timeScale && !token.IsCancellationRequested)
                         // yield return null;
-                        yield return new WaitForEndOfFrame();
+                        yield return null /*new WaitForEndOfFrame()*/;
 
                     if (token.IsCancellationRequested) {
                         IsTyping = false;
