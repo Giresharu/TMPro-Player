@@ -1,0 +1,34 @@
+* text=auto
+
+*.cs text
+*.cginc text
+*.shader text
+
+# Binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.tga binary
+*.psd binary
+*.bmp binary
+*.fbx binary
+*.ogg binary
+*.aif binary
+*.wav binary
+*.a binary
+*.pdf binary
+*.zip binary
+*.dll binary
+*.so binary
+*.a binary
+*.dylib binary
+*.unitypackage binary
+
+# Unity 文件
+*.meta text -diff eol=lf
+*.unity text -diff eol=lf
+*.asset text -diff eol=lf
+*.anim text -diff eol=lf
+*.prefab text -diff eol=lf
+*.mat text -diff eol=lf
+*.controller text -diff eol=lf
