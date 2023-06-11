@@ -25,10 +25,11 @@
 *.unitypackage binary
 
 # Unity 文件
-*.meta text -diff eol=lf
-*.unity text -diff eol=lf
-*.asset text -diff eol=lf
-*.anim text -diff eol=lf
-*.prefab text -diff eol=lf
-*.mat text -diff eol=lf
-*.controller text -diff eol=lf
+*.meta text merge=unityyamlmerge eol=lf
+*.unity text merge=unityyamlmerge eol=lf
+*.asset text merge=unityyamlmerge eol=lf
+*.anim text merge=unityyamlmerge eol=lf
+*.prefab text merge=unityyamlmerge eol=lf
+*.mat text merge=unityyamlmerge eol=lf
+*.controller text merge=unityyamlmerge eol=lf
+*.asmdef text merge=unityyamlmerge eol=lf
