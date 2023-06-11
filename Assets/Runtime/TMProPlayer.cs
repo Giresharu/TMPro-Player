@@ -232,6 +232,9 @@ namespace TMPPlayer {
             IsHardSkipping = false;
             // lastInvokeIndex = TextMeshPro.text.Length - 1;
             // TextMeshPro.UpdateVertexData(TMP_VertexDataUpdateFlags.Colors32);
+
+            if (VisibleCount > TextMeshPro.textInfo.characterCount) VisibleCount = TextMeshPro.textInfo.characterCount;
+            if (lastInvokeIndex >= TextMeshPro.text.Length) lastInvokeIndex = TextMeshPro.text.Length;
         }
 
         /// <summary>
@@ -305,6 +308,10 @@ namespace TMPPlayer {
                 }
                 VisibleCount++;
             }
+
+            if (VisibleCount > TextMeshPro.textInfo.characterCount) VisibleCount = TextMeshPro.textInfo.characterCount;
+            if (lastInvokeIndex >= TextMeshPro.text.Length) lastInvokeIndex = TextMeshPro.text.Length;
+            // softSkipOn = false;
             IsSoftSkipping = false;
         }
 
@@ -326,6 +333,7 @@ namespace TMPPlayer {
             Delay = defaultDelay;
 
             if (isTypeWriter) {
+                if (softSkipOn && !IsSoftSkipping) StartCoroutine(SoftSkipCoroutine());
                 if (!isAdditive || !IsTyping) StartCoroutine(TypeWriter(typeWriterTokenSource.Token));
             } else {
                 // typeWriterQueue.Clear();
@@ -404,6 +412,11 @@ namespace TMPPlayer {
                     yield return null;
                 }
 
+                if (token.IsCancellationRequested) {
+                    IsTyping = false;
+                    yield break;
+                }
+
                 // 解决会被自动隐藏的 tmp 自带标签不被算进 character 但是有被我们用来计算了 action 的 start 以及 end 的问题；
                 // 当目前遍历到的 lastInvokeIndex 不能与当前 visible 的最后一个 character 的 index 匹配时；
                 // 就一边递增 lastInvokeIndex 一边把对应的 action 执行掉
@@ -412,12 +425,6 @@ namespace TMPPlayer {
 
                     if (singleActions.TryGetValue(lastInvokeIndex, out var tuples)) {
                         for (int i = tupleIndexHasInvoke + 1; i < tuples.Count; i++) {
-                            // 排队进行打字机效果的过程中如果非增量而切换到下一句时，会刷新掉所有 singleActions
-                            // 应该终止整个携程
-                            if (token.IsCancellationRequested) {
-                                IsTyping = false;
-                                yield break;
-                            }
 
                             //防止返回null的时候被yield return 延迟一帧
                             IEnumerator coroutine = tuples[i].actionInfo.Invoke(this, actionTokenSource.Token, null, tuples[i].value);
