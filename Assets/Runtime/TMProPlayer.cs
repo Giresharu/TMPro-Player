@@ -66,15 +66,17 @@ namespace TMPPlayer {
         }
 
         void OnDestroy() {
-            if (actionTokenSource is not { IsCancellationRequested: false }) return;
-
-            actionTokenSource.Cancel();
-            actionTokenSource.Dispose();
-
-            if (typeWriterTokenSource is not { IsCancellationRequested: false }) return;
-
-            typeWriterTokenSource.Cancel();
-            typeWriterTokenSource.Dispose();
+            // if (actionTokenSource is not { IsCancellationRequested: false }) return;
+            if (actionTokenSource != null) {
+                if (!actionTokenSource.IsCancellationRequested) actionTokenSource.Cancel();
+                actionTokenSource.Dispose();
+            }
+            
+            if (typeWriterTokenSource != null) {
+                if (!typeWriterTokenSource.IsCancellationRequested) typeWriterTokenSource.Cancel();
+                typeWriterTokenSource.Dispose();
+            }
+            
         }
 
         /*void OnTextChanged(object obj) {
@@ -375,7 +377,7 @@ namespace TMPPlayer {
         void SetCharacterLog() {
             LastChar = VisibleCount > 1 ? CurrentChar : new TMP_CharacterInfo { character = '\0' };
             CurrentChar = VisibleCount > 0 ? TextMeshPro.textInfo.characterInfo[VisibleCount - 1] : new TMP_CharacterInfo { character = '\0' };
-            NextChar = VisibleCount <= TextMeshPro.textInfo.characterCount ? TextMeshPro.textInfo.characterInfo[VisibleCount] : new TMP_CharacterInfo { character = '\0' };
+            NextChar = VisibleCount < TextMeshPro.textInfo.characterCount ? TextMeshPro.textInfo.characterInfo[VisibleCount] : new TMP_CharacterInfo { character = '\0' };
         }
 
         bool isFuncWaiting = false;
