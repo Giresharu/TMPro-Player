@@ -42,8 +42,8 @@ public class ExampleBasic : MonoBehaviour {
 
                 break;
             case 2:
-                tmpp.SetText("<b>标签参数</b><indent=100><p=250>标签可以有参数，<p=250>参数的类型可以是 C# 内置的可以从字符串解析而来的任何类型。<p=500>填写参数的格式如：<tagName=arg0,arg1,arg2> 。<p=250>如果标签支持，你也可以省略参数使用默认值。<p=500>省略部分靠后参数时，直接不填写即可： <tagName=arg0> 。<p=500>省略考前或者中间的参数时，<p=250>请预留逗号表示参数位置防止解析错误： <tagName=,,arg2>。<p=500>若要全部省略，直接填写标签不要写等号 = 即可。<p=500>逗号与等号的两侧可以添加空格增加可读性。<p=500>成对标签的闭标签请不要写参数<p=1000></indent>\n");
-                tmpp.SetText("<b>标签嵌套</b><indent=100><p=250>如大部分富文本一样，<p=250>我们的标签也支持成对标签的互相嵌套。<p=500>如： <tagA><tagB>text</tagB></tagA> ，<p=250>也支持同名标签的嵌套： <tagA><tagA></tagA></tagA> ，<p=250>将会以中间为一对，<p=250>外面为一对的方式解析<p=1000></indent>\n", true, true);
+                tmpp.SetText("<b>标签参数</b><indent=100><p=250>标签可以有参数，<p=250>参数的类型可以是 C# 内置的可以从字符串解析而来的任何类型。<p=500>填写参数的格式如：<tagName=arg0,arg1,arg2> 。<p=250>如果标签支持，你也可以省略参数使用默认值。<p=500>省略部分靠后参数时，直接不填写即可： <tagName=arg0> 。<p=500>省略考前或者中间的参数时，<p=250>请预留逗号表示参数位置防止解析错误： <tagName=,,arg2>。<p=500>若要全部省略，直接填写标签不要写等号 = 即可。<p=500>逗号与等号的两侧可以添加空格增加可读性。<p=500>成对标签的闭标签请不要写参数。<p=1000></indent>\n");
+                tmpp.SetText("<b>标签嵌套</b><indent=100><p=250>标签支持成对标签的互相嵌套。<p=500>如： <tagA><tagB>text</tagB></tagA> ，<p=250>也支持同名标签的嵌套： <tagA><tagA>text</tagA></tagA> ，<p=250>将会以中间为一对，<p=250>外面为一对的方式解析。<p=1000></indent>\n", true, true);
                 tmpp.SetText("<b>标签交错</b><indent=100><p=250>与其他富文本不同，<p=250>我们还支持不同的标签交错。<p=500>如： <tagA><tagB>text</tagA></tagB> 。<p=1000></indent>\n", true, true);
                 tmpp.SetText("\n<align=right>内置标签请参考 ReadMe 文档\n更多自定义标签的范例请参考\nTMPro-Player\\Examples\\2.CustomRichTagExample.unity", true, true);
 
