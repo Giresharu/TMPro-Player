@@ -58,7 +58,7 @@ namespace TMPPlayer {
         }*/
 
         void Start() {
-            if (TextMeshPro == null) TextMeshPro = GetComponent<TextMeshProUGUI>();
+            if (TextMeshPro == null) TextMeshPro = GetComponent<TMP_Text>();
             if (TextMeshPro.text != null) {
                 SetText(TextMeshPro.text);
             }
