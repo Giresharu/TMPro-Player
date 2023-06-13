@@ -7,7 +7,7 @@ TMPro-Player
 
 ### Feature
 
-* Added [`SoftSkip`](README-en.md/#softskip) method for soft skipping and [`SetSoftSkip`](README-en.md/#setsoftskip) method for setting continuous soft skipping. Unlike `Skip`, soft skipping jumps only to the next tag that executes a Func-type delegate.
+* Added `SoftSkip` method for soft skipping and `SetSoftSkip` method for setting continuous soft skipping. Unlike `Skip`, soft skipping jumps only to the next tag that executes a Func-type delegate.
 * Added `timeScale` field to TMProPlayer class for convenient fast-forwarding.
 
 ### Fixed

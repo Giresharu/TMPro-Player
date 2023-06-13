@@ -7,7 +7,7 @@ TMPro-Player
 
 ### 特性
 
-* 增加软跳过 [`SoftSkip`](README.md/#softskip) 方法以及设置持续软跳 [`SetSoftSkip`](README.md/#setsoftskip) 方法。与 `Skip` 不同，软跳过只会跳到下一个执行 Func 类型委托的标签；
+* 增加软跳过 `SoftSkip` 方法以及设置持续软跳 `SetSoftSkip` 方法。与 `Skip` 不同，软跳过只会跳到下一个执行 Func 类型委托的标签；
 * 给 TMProPlayer 类型添加 `timeScale` 字段，用于方便快进；
 
 ### 修复
