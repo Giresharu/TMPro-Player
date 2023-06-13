@@ -12,10 +12,11 @@ namespace TMPPlayer {
     [RequireComponent(typeof(TMP_Text))]
     public class TMProPlayer : MonoBehaviour {
 
-        public bool isTypeWriter;
+        public bool isTypeWriter = true;
         public string openStyle;
         public string closeStyle;
-        public int defaultDelay;
+        public int defaultDelay = 75;
+        public float timeScale = 1;
         // public char[] delayBlackList;
 
         readonly Dictionary<int, List<(ActionInfo actionInfo, string[] value)>> singleActions = new Dictionary<int, List<(ActionInfo actionInfo, string[] value)>>();
@@ -57,7 +58,7 @@ namespace TMPPlayer {
         }*/
 
         void Start() {
-            if (TextMeshPro == null) TextMeshPro = GetComponent<TextMeshProUGUI>();
+            if (TextMeshPro == null) TextMeshPro = GetComponent<TMP_Text>();
             if (TextMeshPro.text != null) {
                 SetText(TextMeshPro.text);
             }
@@ -65,15 +66,17 @@ namespace TMPPlayer {
         }
 
         void OnDestroy() {
-            if (actionTokenSource is not { IsCancellationRequested: false }) return;
-
-            actionTokenSource.Cancel();
-            actionTokenSource.Dispose();
-
-            if (typeWriterTokenSource is not { IsCancellationRequested: false }) return;
-
-            typeWriterTokenSource.Cancel();
-            typeWriterTokenSource.Dispose();
+            // if (actionTokenSource is not { IsCancellationRequested: false }) return;
+            if (actionTokenSource != null) {
+                if (!actionTokenSource.IsCancellationRequested) actionTokenSource.Cancel();
+                actionTokenSource.Dispose();
+            }
+            
+            if (typeWriterTokenSource != null) {
+                if (!typeWriterTokenSource.IsCancellationRequested) typeWriterTokenSource.Cancel();
+                typeWriterTokenSource.Dispose();
+            }
+            
         }
 
         /*void OnTextChanged(object obj) {
@@ -189,28 +192,129 @@ namespace TMPPlayer {
         /// <summary>
         /// 跳过当前打字机效果
         /// </summary>
-        public void Skip() {
+        /// <param name="invokeSingleActions"> 是否需要执行跳过的文字中的单个标签 </param>
+        public void Skip(bool invokeSingleActions = true) {
             if (typeWriterTokenSource is not { IsCancellationRequested: false }) return;
 
             typeWriterTokenSource.Cancel();
             typeWriterTokenSource.Dispose();
             typeWriterTokenSource = new CancellationTokenSource();
 
-            bool needDisplay = !CheckUpdateFlags(TMP_VertexDataUpdateFlags.Colors32);
+            IsHardSkipping = true;
+            /*bool needDisplay = !CheckUpdateFlags(TMP_VertexDataUpdateFlags.Colors32);
+            if (needDisplay) {*/
+            while (VisibleCount <= TextMeshPro.textInfo.characterCount) {
+                SetCharacterLog();
 
-            if (needDisplay) {
-                while (VisibleCount <= TextMeshPro.textInfo.characterCount) {
-                    if (VisibleCount > 0 && TextMeshPro.textInfo.characterInfo[VisibleCount - 1].isVisible) {
-                        RemoveUpdateFlags(TMP_VertexDataUpdateFlags.Colors32);
-                        DisplayCharacter();
-                    }
-                    VisibleCount++;
+                if (VisibleCount > 0 && TextMeshPro.textInfo.characterInfo[VisibleCount - 1].isVisible) {
+                    RemoveUpdateFlags(TMP_VertexDataUpdateFlags.Colors32);
+                    DisplayCharacter();
                 }
-            } else VisibleCount = TextMeshPro.textInfo.characterCount;
+
+                //TODO 可能需要更多测试
+                while (invokeSingleActions && (VisibleCount < TextMeshPro.textInfo.characterCount && lastInvokeIndex <= TextMeshPro.textInfo.characterInfo[VisibleCount].index) || (VisibleCount == TextMeshPro.textInfo.characterCount && lastInvokeIndex <= TextMeshPro.text.Length)) {
+
+                    if (singleActions.TryGetValue(lastInvokeIndex, out var tuples)) {
+                        for (int i = 0; i < tuples.Count; i++) {
+
+                            IEnumerator coroutine = tuples[i].actionInfo.Invoke(this, actionTokenSource.Token, null, tuples[i].value);
+                            if (coroutine != null) StartCoroutine(coroutine);
+
+                        }
+                    }
+                    lastInvokeIndex++;
+                }
+
+
+                VisibleCount++;
+            }
+            /*} else VisibleCount = TextMeshPro.textInfo.characterCount;*/
 
             IsTyping = false;
-            lastInvokeIndex = TextMeshPro.text.Length - 1;
+            IsHardSkipping = false;
+            // lastInvokeIndex = TextMeshPro.text.Length - 1;
             // TextMeshPro.UpdateVertexData(TMP_VertexDataUpdateFlags.Colors32);
+
+            if (VisibleCount > TextMeshPro.textInfo.characterCount) VisibleCount = TextMeshPro.textInfo.characterCount;
+            if (lastInvokeIndex >= TextMeshPro.text.Length) lastInvokeIndex = TextMeshPro.text.Length;
+        }
+
+        /// <summary>
+        /// 设置软跳过，将会在 Func 类型的标签中正确暂停，随时可以设置 false 停止
+        /// </summary>
+        /// <param name="value">设置软跳过是否启动</param>
+        public void SetSoftSkip(bool value) {
+            if (softSkipOn == value) return;
+
+            softSkipOn = value;
+            if (softSkipOn) StartCoroutine(SoftSkipCoroutine());
+        }
+
+        /// <summary>
+        /// 设置一次软跳过，然后立马取消。将会跳过到 Func 类型的标签。
+        /// </summary>
+        public void SoftSkip() {
+            if (softSkipOn) return;
+            softSkipOn = true;
+            StartCoroutine(SoftSkipCoroutine(true));
+        }
+
+        public bool IsSkipping { get { return IsSoftSkipping || IsHardSkipping; } }
+        public bool IsHardSkipping { get; private set; }
+        public bool IsSoftSkipping { get; private set; }
+        bool softSkipOn;
+        int tupleIndexHasInvoke = -1;
+
+        // bool isSoftSkipping;
+        IEnumerator SoftSkipCoroutine(bool oneShot = false) {
+            IsSoftSkipping = true;
+            while (isFuncWaiting || !isActiveAndEnabled) {
+                if (softSkipOn) yield return null;
+                else {
+                    IsSoftSkipping = false;
+                    yield break;
+                }
+            }
+
+            while (VisibleCount <= TextMeshPro.textInfo.characterCount) {
+                SetCharacterLog();
+
+                if (VisibleCount > 0 && TextMeshPro.textInfo.characterInfo[VisibleCount - 1].isVisible) {
+                    RemoveUpdateFlags(TMP_VertexDataUpdateFlags.Colors32);
+                    DisplayCharacter();
+                }
+
+                while ((VisibleCount < TextMeshPro.textInfo.characterCount && lastInvokeIndex <= TextMeshPro.textInfo.characterInfo[VisibleCount].index) || (VisibleCount == TextMeshPro.textInfo.characterCount && lastInvokeIndex <= TextMeshPro.text.Length)) {
+                    if (singleActions.TryGetValue(lastInvokeIndex, out var tuples)) {
+                        for (int i = 0; i < tuples.Count; i++) {
+
+                            IEnumerator coroutine = tuples[i].actionInfo.Invoke(this, actionTokenSource.Token, null, tuples[i].value);
+                            tupleIndexHasInvoke = i; //记录已经被触发的索引
+
+                            if (coroutine != null) {
+
+                                yield return coroutine;
+                                // 从 Func 回来后万一已经不需要跳过了就标记退出
+                                if (!softSkipOn || oneShot) {
+                                    softSkipOn = false;
+                                    IsSoftSkipping = false;
+                                    yield break;
+                                }
+
+                            }
+
+                        }
+                        tupleIndexHasInvoke = -1; //全部执行完了恢复 -1 表示下一次循环还未触发任何索引
+                    }
+                    lastInvokeIndex++;
+                }
+                VisibleCount++;
+            }
+
+            if (VisibleCount > TextMeshPro.textInfo.characterCount) VisibleCount = TextMeshPro.textInfo.characterCount;
+            if (lastInvokeIndex >= TextMeshPro.text.Length) lastInvokeIndex = TextMeshPro.text.Length;
+            // softSkipOn = false;
+            IsSoftSkipping = false;
         }
 
 
@@ -231,6 +335,7 @@ namespace TMPPlayer {
             Delay = defaultDelay;
 
             if (isTypeWriter) {
+                if (softSkipOn && !IsSoftSkipping) StartCoroutine(SoftSkipCoroutine());
                 if (!isAdditive || !IsTyping) StartCoroutine(TypeWriter(typeWriterTokenSource.Token));
             } else {
                 // typeWriterQueue.Clear();
@@ -269,6 +374,13 @@ namespace TMPPlayer {
 
         }
 
+        void SetCharacterLog() {
+            LastChar = VisibleCount > 1 ? CurrentChar : new TMP_CharacterInfo { character = '\0' };
+            CurrentChar = VisibleCount > 0 ? TextMeshPro.textInfo.characterInfo[VisibleCount - 1] : new TMP_CharacterInfo { character = '\0' };
+            NextChar = VisibleCount < TextMeshPro.textInfo.characterCount ? TextMeshPro.textInfo.characterInfo[VisibleCount] : new TMP_CharacterInfo { character = '\0' };
+        }
+
+        bool isFuncWaiting = false;
         IEnumerator TypeWriter(CancellationToken token) {
             IsTyping = true;
             while (VisibleCount <= TextMeshPro.textInfo.characterCount && !token.IsCancellationRequested) {
@@ -278,24 +390,33 @@ namespace TMPPlayer {
                     continue;
                 }
 
-                LastChar = VisibleCount > 1 ? CurrentChar : new TMP_CharacterInfo { character = '\0' };
-                CurrentChar = VisibleCount > 0 ? TextMeshPro.textInfo.characterInfo[VisibleCount - 1] : new TMP_CharacterInfo { character = '\0' };
-                NextChar = VisibleCount <= TextMeshPro.textInfo.characterCount ? TextMeshPro.textInfo.characterInfo[VisibleCount] : new TMP_CharacterInfo { character = '\0' };
+                SetCharacterLog();
 
+                // 防止因为存在 Color32 的 flag 而不会显示新的文字
+                if (Delay <= 0) RemoveUpdateFlags(TMP_VertexDataUpdateFlags.Colors32);
                 DisplayCharacter();
 
                 if (VisibleCount > 0 /*&& ShouldDelay(CurrentChar)*/ && TextMeshPro.textInfo.characterInfo[VisibleCount - 1].isVisible) {
                     // Debug.Log(CurrentChar);
                     float startTime = Time.time;
-                    while ((Time.time - startTime) * 1000 < Delay && !token.IsCancellationRequested)
+                    while ((Time.time - startTime) * 1000 < Delay / timeScale && !token.IsCancellationRequested)
                         // yield return null;
-                        yield return new WaitForEndOfFrame();
+                        yield return null /*new WaitForEndOfFrame()*/;
 
                     if (token.IsCancellationRequested) {
                         IsTyping = false;
                         yield break;
-
                     }
+                }
+
+                // 正在软跳的时候暂停打字机效果
+                while (IsSoftSkipping) {
+                    yield return null;
+                }
+
+                if (token.IsCancellationRequested) {
+                    IsTyping = false;
+                    yield break;
                 }
 
                 // 解决会被自动隐藏的 tmp 自带标签不被算进 character 但是有被我们用来计算了 action 的 start 以及 end 的问题；
@@ -305,22 +426,20 @@ namespace TMPPlayer {
                        (VisibleCount == TextMeshPro.textInfo.characterCount && lastInvokeIndex <= TextMeshPro.text.Length)) { // 当所有文字都显示完毕后，还要继续触发后面的标签
 
                     if (singleActions.TryGetValue(lastInvokeIndex, out var tuples)) {
-                        for (int i = 0; i < tuples.Count; i++) {
-                            // 排队进行打字机效果的过程中如果非增量而切换到下一句时，会刷新掉所有 singleActions
-                            // 应该终止整个携程
-                            if (token.IsCancellationRequested) {
-                                IsTyping = false;
-                                yield break;
-                            }
+                        for (int i = tupleIndexHasInvoke + 1; i < tuples.Count; i++) {
 
-                            yield return tuples[i].actionInfo.Invoke(this, actionTokenSource.Token, null, tuples[i].value);
+                            //防止返回null的时候被yield return 延迟一帧
+                            IEnumerator coroutine = tuples[i].actionInfo.Invoke(this, actionTokenSource.Token, null, tuples[i].value);
+                            if (coroutine != null) {
+                                isFuncWaiting = true;
+                                yield return coroutine;
+                                isFuncWaiting = false;
+                            }
                             // 防止暂停的过程中被取消，导致后续还被执行，所以再检查一次
                             if (token.IsCancellationRequested) {
                                 IsTyping = false;
                                 yield break;
-
                             }
-
                         }
                     }
                     lastInvokeIndex++;

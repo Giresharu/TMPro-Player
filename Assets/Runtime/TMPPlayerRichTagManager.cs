@@ -28,7 +28,7 @@ namespace TMPPlayer {
             // 包含闭合标签的范围性动作，是播放文字的开头触发的，所以使用协程
             SetActionInfo(args => StartCoroutine(Delay((TMProPlayer)args[0], (int)args[1], (List<(int, int)>)args[2], (CancellationToken)args[3])), "Delay", true, "delay", "Delay", "d", "D");
 
-            SetActionInfo(args => Pause((int)args[0], (CancellationToken)args[1]), "Pause", false, "pause", "Pause", "p", "P");
+            SetActionInfo(args => Pause((TMProPlayer)args[0], (int)args[1], (CancellationToken)args[2]), "Pause", false, "pause", "Pause", "p", "P");
         }
 
         // ReSharper disable once MemberCanBePrivate.Global
@@ -182,19 +182,19 @@ namespace TMPPlayer {
         }
 
     #region Action Region
-        static IEnumerator Pause(int time = 500, CancellationToken token = default) {
+        static IEnumerator Pause(TMProPlayer tmpp, int time = 500, CancellationToken token = default) {
             float startTime = Time.time;
-            while ((Time.time - startTime) * 1000 < time && !token.IsCancellationRequested) {
+            while ((Time.time - startTime) * 1000 < time / tmpp.timeScale && !token.IsCancellationRequested) {
                 yield return null;
             }
         }
 
         readonly List<int> changedIndex = new List<int>();
-        static IEnumerator Delay(TMProPlayer tmpp, int time = 50, List<(int start, int end)> ranges = null, CancellationToken token = default) {
+        static IEnumerator Delay(TMProPlayer tmpp, int time = 75, List<(int start, int end)> ranges = null, CancellationToken token = default) {
 
             if (!tmpp.isTypeWriter) yield break;
 
-            List<int> indexInRange = IndicesInRange(tmpp.TextMeshPro.textInfo, ranges, false, false);
+            HashSet<int> indexInRange = IndicesInRangeHashSet(tmpp.TextMeshPro.textInfo, ranges, false, false);
 
             // int charaIndex = 0;
             int lastVisibleCount = tmpp.VisibleCount - 1;
@@ -208,6 +208,7 @@ namespace TMPPlayer {
                     lastVisibleCount++;
 
                     if (indexInRange.Contains(lastVisibleCount)) {
+                        indexInRange.Remove(lastVisibleCount);
                         tmpp.Delay = time;
                         instance.changedIndex.Add(lastVisibleCount);
                     } else if (!instance.changedIndex.Contains(lastVisibleCount)) // 防止把其他范围的delay覆盖了

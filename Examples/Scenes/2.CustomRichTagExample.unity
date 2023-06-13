@@ -337,7 +337,7 @@ Camera:
   near clip plane: 0.3
   far clip plane: 1000
   field of view: 60
-  orthographic: 1
+  orthographic: 0
   orthographic size: 5
   m_Depth: -1
   m_CullingMask:
@@ -658,9 +658,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   isTypeWriter: 1
-  openStyle: <appear>
-  closeStyle: </appear>
-  defaultDelay: 60
+  openStyle: 
+  closeStyle: 
+  defaultDelay: 50
+  timeScale: 1
 --- !u!114 &1960865185
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -681,8 +682,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\n\n<shake>\u6587\u5B57\u632F\u52A8</shake>\n\n<wave>\u6587\u5B57\u6CE2\u6D6A</wave>\n\n<d=600>\u8C03\u6574\u6587\u5B57\u901F\u5EA6</d>\n\n\u6587\u5B57\u6682\u505C\uFF0C<pause=500>\u8BF6\u7EE7\u7EED\n\n\u5177\u4F53\u5B9E\u73B0\u8BF7\u53C2\u8003
-    Hierarchy \u4E2D RichTagManager \u7684\u811A\u672C"
+  m_text: "<appear>\u6587\u5B57\u6DE1\u5165</appear>\n\n<shake>\u6587\u5B57\u632F\u52A8</shake>\n\n<wave>\u6587\u5B57\u6CE2\u6D6A</wave>\n\n<d=600>\u8C03\u6574\u6587\u5B57\u901F\u5EA6</d>\n\n\u6587\u5B57\u6682\u505C\uFF0C<pause=500>\u8BF6\u7EE7\u7EED<p=250>\n\n\u5177\u4F53\u5B9E\u73B0\u8BF7\u53C2\u8003\nTMPro-Player\\Examples\\Scripts\\TMProPlayerRichTagExample.cs"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 0b982c762d441fa4182f1328aff65935, type: 2}
   m_sharedMaterial: {fileID: -2721906251388664555, guid: 0b982c762d441fa4182f1328aff65935, type: 2}
