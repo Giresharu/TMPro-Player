@@ -1,4 +1,4 @@
-TMPro Player
+![LOGO](./Assets/logo.png)
 ===
 [![Releases](https://img.shields.io/github/v/release/Giresharu/TMPro-Player.svg)](https://github.com/Giresharu/TMPro-Player/releases/latest) [![openupm](https://img.shields.io/npm/v/com.gsr.tmproplayer?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.gsr.tmproplayer/) [![LICENSE](https://img.shields.io/github/license/Giresharu/TMPro-Player)](./LICENSE.md) ![Unity](https://img.shields.io/badge/Unity%20Supported-2020.1%2B-ff69b4.svg)
 
@@ -58,7 +58,7 @@ TMPro Player 是一款基于 TextMeshPro 的富文本标签管理插件，实现
 # 安装最新版本
 openupm add com.gsr.tmproplayer
 # 安装指定版本
-openupm add com.gsr.tmproplayer@1.1.0
+openupm add com.gsr.tmproplayer@1.1.1
 ```
 如果你使用了魔改的 `com.unity.textmeshpro` ，并且无法正确被识别为依赖时，请使用如下命令安装：
 
@@ -71,7 +71,7 @@ openupm add com.gsr.tmproplayer -f
 在 Unity 引擎中，打开 `Package Manager` ，点击左上角的 `+` ，选择 `Add package from git URL` ，然后输入本项目的 git 地址即可： 
 
 ```shell
-https://github.com/Giresharu/TMPro-Player.git?path=Assets#1.1.0
+https://github.com/Giresharu/TMPro-Player.git?path=Assets#1.1.1
 ```
 建议使用 git URL 安装时指定版本号，否则会默认更新为最新仓库，而非最新版本。有可能会安装不稳定的仓库。
 
