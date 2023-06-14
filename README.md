@@ -20,6 +20,7 @@ TMPro Player 是一款基于 TextMeshPro 的富文本标签管理插件，实现
 - [安装](#安装)
   - [通过 OpenUPM 安装](#通过-openupm-安装)
   - [通过 git URL 安装](#通过-git-url-安装)
+  - [安装范例](#安装范例)
 - [用法](#用法)
 - [标签的执行规则](#标签的执行规则)
 - [自定义标签](#自定义标签)
@@ -73,6 +74,11 @@ openupm add com.gsr.tmproplayer -f
 https://github.com/Giresharu/TMPro-Player.git?path=Assets#1.1.0
 ```
 建议使用 git URL 安装时指定版本号，否则会默认更新为最新仓库，而非最新版本。有可能会安装不稳定的仓库。
+
+### 安装范例
+
+安装完插件后，可在 `Packages/com.gsr.tmproplayer/Example/` 目录下找到范例 `Examples.unitypackage` 。
+范例中包含了`文字振动`、`文字波浪`以及`文字淡入`功能的演示。
 
 用法
 ---

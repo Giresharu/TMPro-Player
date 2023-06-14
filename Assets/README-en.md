@@ -22,6 +22,7 @@ Click to view [CHANGELOG](./CHANGELOG-en.md)
 - [Installation](#installation)
   - [Install via OpenUPM](#install-via-openupm)
   - [Install via git URL](#install-via-git-url)
+  - [Installing Examples](#installing-examples)
 - [Usage](#usage)
 - [Tag Execution Rules](#tag-execution-rules)
 - [Custom Tags](#custom-tags)
@@ -75,6 +76,10 @@ In the Unity engine, open the `Package Manager` and click on the `+` button in t
 https://github.com/Giresharu/TMPro-Player.git?path=Assets#1.1.0
 ```
 It is recommended to specify the version number when installing via Git URL to avoid automatically updating to the latest repository instead of the latest version. This ensures that you install a stable repository.
+
+### Installing Examples
+
+After installing the plugin, you can find the example package `Examples.unitypackage` in the path `Packages/com.gsr.tmproplayer/Example/`. The examples showcase the functionalities of "Text Shake," "Text Wave," and "Text Fade-in Appear."
 
 Usage
 ---

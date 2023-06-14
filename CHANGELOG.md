@@ -2,13 +2,22 @@ TMPro-Player
 ===
 [View in English](./CHANGELOG-en.md)
 
+[1.1.1](https://github.com/Giresharu/TMPro-Player/releases/1.1.0)
+---
+
+### 特性
+* 增加组件图标。
+
+### 修改
+* 去除没啥用的 EditorWindow 脚本。
+
 [1.1.0](https://github.com/Giresharu/TMPro-Player/releases/1.1.0)
 ---
 
 ### 特性
 
 * 增加软跳过 `SoftSkip` 方法以及设置持续软跳 `SetSoftSkip` 方法。与 `Skip` 不同，软跳过只会跳到下一个执行 Func 类型委托的标签；
-* 给 TMProPlayer 类型添加 `timeScale` 字段，用于方便快进；
+* 给 TMProPlayer 类型添加 `timeScale` 字段，用于方便快进。
 
 ### 修复
 
@@ -17,7 +26,7 @@ TMPro-Player
 * 优化 `Delay` 标签的实现；
 * 修复 `Delay` 为 0 时老不更新文字的bug；
 * 修复 TMProPlayer 实例被销毁时不会正确 Dispose 内部的 CancellationTokenSource 的问题；
-* 修复更新 `NextChar` 时超出索引的问题；
+* 修复更新 `NextChar` 时超出索引的问题。
 
 
 [1.0.2](https://github.com/Giresharu/TMPro-Player/releases/1.0.2) | [1.0.0](https://github.com/Giresharu/TMPro-Player/releases/1.0.0)
