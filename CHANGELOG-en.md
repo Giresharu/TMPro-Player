@@ -2,7 +2,13 @@ TMPro-Player
 ===
 [查看中文版本](./CHANGELOG.md)
 
-[1.1.1](https://github.com/Giresharu/TMPro-Player/releases/1.1.0)
+[1.1.2](https://github.com/Giresharu/TMPro-Player/releases/1.1.2)
+---
+
+### 修复
+* I made a silly mistake, accidentally typed an extra character. It's fixed now.
+
+[1.1.1](https://github.com/Giresharu/TMPro-Player/releases/1.1.1)
 ---
 
 ### Feature

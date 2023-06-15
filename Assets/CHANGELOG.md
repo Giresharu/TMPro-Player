@@ -2,7 +2,13 @@ TMPro-Player
 ===
 [View in English](./CHANGELOG-en.md)
 
-[1.1.1](https://github.com/Giresharu/TMPro-Player/releases/1.1.0)
+[1.1.2](https://github.com/Giresharu/TMPro-Player/releases/1.1.2)
+---
+
+### 修复
+* 犯了个低级错误，依赖多打了一个字符，改好了。
+
+[1.1.1](https://github.com/Giresharu/TMPro-Player/releases/1.1.1)
 ---
 
 ### 特性

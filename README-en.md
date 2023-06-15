@@ -60,7 +60,7 @@ In your project's root directory, use the following command:
 # Install the latest version
 openupm add com.gsr.tmproplayer
 # Install a specific version
-openupm add com.gsr.tmproplayer@1.1.1
+openupm add com.gsr.tmproplayer@1.1.2
 ```
 If you are using a modified version of `com.unity.textmeshpro` and it is not recognized as a dependency, please use the following command to install:
 
@@ -73,7 +73,7 @@ openupm add com.gsr.tmproplayer -f
 In the Unity engine, open the `Package Manager` and click on the `+` button in the top left corner. Choose `Add package from git URL` and enter the git URL of this project:
 
 ```shell
-https://github.com/Giresharu/TMPro-Player.git?path=Assets#1.1.1
+https://github.com/Giresharu/TMPro-Player.git?path=Assets#1.1.2
 ```
 It is recommended to specify the version number when installing via Git URL to avoid automatically updating to the latest repository instead of the latest version. This ensures that you install a stable repository.
 
