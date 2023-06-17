@@ -2,6 +2,12 @@ TMPro-Player
 ===
 [查看中文版本](./CHANGELOG.md)
 
+[1.1.3](https://github.com/Giresharu/TMPro-Player/releases/1.1.3)
+---
+
+### 修复
+* Fixed the issue of incorrectly merge-optimizing of nested or interleaved paired tags.
+
 [1.1.2](https://github.com/Giresharu/TMPro-Player/releases/1.1.2)
 ---
 

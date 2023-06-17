@@ -2,6 +2,12 @@ TMPro-Player
 ===
 [View in English](./CHANGELOG-en.md)
 
+[1.1.3](https://github.com/Giresharu/TMPro-Player/releases/1.1.3)
+---
+
+### 修复
+* 修复了嵌套或交错的成对标签被错误优化合并的问题
+
 [1.1.2](https://github.com/Giresharu/TMPro-Player/releases/1.1.2)
 ---
 
