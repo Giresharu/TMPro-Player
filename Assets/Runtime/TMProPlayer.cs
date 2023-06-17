@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace TMPPlayer {
 
-    [RequireComponent(typeof(TMP_Text))] [Icon("Packages/com.gsr.tmproplayer/Icons/player.png")]
+    [RequireComponent(typeof(TMP_Text))][Icon("Packages/com.gsr.tmproplayer/Icons/player.png")]
     public class TMProPlayer : MonoBehaviour {
 
         public bool isTypeWriter = true;
@@ -20,7 +20,7 @@ namespace TMPPlayer {
         // public char[] delayBlackList;
 
         readonly Dictionary<int, List<(ActionInfo actionInfo, string[] value)>> singleActions = new Dictionary<int, List<(ActionInfo actionInfo, string[] value)>>();
-        readonly Dictionary<(ActionInfo actionInfo, string[] value), List<(int start, int end)>> pairedActions = new Dictionary<(ActionInfo, string[] ), List<(int, int)>>(new ActionInfoComparer());
+        readonly Dictionary<(ActionInfo actionInfo, string[] value, int nestLayer), List<(int start, int end)>> pairedActions = new Dictionary<(ActionInfo, string[], int), List<(int, int)>>(new ActionInfoComparer());
         // readonly Queue<IEnumerator> typeWriterQueue = new Queue<IEnumerator>();
 
         CancellationTokenSource actionTokenSource;
@@ -71,12 +71,12 @@ namespace TMPPlayer {
                 if (!actionTokenSource.IsCancellationRequested) actionTokenSource.Cancel();
                 actionTokenSource.Dispose();
             }
-            
+
             if (typeWriterTokenSource != null) {
                 if (!typeWriterTokenSource.IsCancellationRequested) typeWriterTokenSource.Cancel();
                 typeWriterTokenSource.Dispose();
             }
-            
+
         }
 
         /*void OnTextChanged(object obj) {
@@ -346,9 +346,9 @@ namespace TMPPlayer {
                 lastInvokeIndex = TextMeshPro.text.Length - 1;
                 // AddUpdateFlags(TMP_VertexDataUpdateFlags.Colors32);
             }
-
+            
             // 触发成对 Action
-            foreach ((ActionInfo actionInfo, string[] value) tuple in pairedActions.Keys)
+            foreach (var tuple in pairedActions.Keys)
                 tuple.actionInfo.Invoke(this, actionTokenSource.Token, pairedActions[tuple], tuple.value);
 
         }
@@ -528,7 +528,10 @@ namespace TMPPlayer {
 
                     richTag.value = valueStrs;
 
-                    if (actionInfo.IsPaired) tagIndices.Push(textTags.Count);
+                    if (actionInfo.IsPaired) {
+                        richTag.nestLayer = tagIndices.Count;
+                        tagIndices.Push(textTags.Count);
+                    }
 
                     textTags.Add(richTag);
                     cutSize += tagStr.Length;
@@ -544,7 +547,7 @@ namespace TMPPlayer {
         void PrepareActions(bool additive = false) {
             // 清除成对的标签的 Action ，是因为他们是在播放文字前触发的，会重复触发
             pairedActions.Clear();
-            //如果是不是增量更新，也要清除单个标签的 Action
+            //如果不是增量更新，也要清除单个标签的 Action
             if (!additive) singleActions.Clear();
 
 
@@ -558,27 +561,28 @@ namespace TMPPlayer {
 
                 } else {
                     ActionInfo actionInfo = TMPPlayerRichTagManager.GetActionInfo(richTagInfo.type);
-                    if (!pairedActions.ContainsKey((actionInfo, richTagInfo.value)))
-                        pairedActions.Add((actionInfo, richTagInfo.value), new List<(int start, int end)>());
+                    if (!pairedActions.ContainsKey((actionInfo, richTagInfo.value, richTagInfo.nestLayer))) 
+                        pairedActions.Add((actionInfo, richTagInfo.value, richTagInfo.nestLayer), new List<(int start, int end)>());
 
-                    pairedActions[(actionInfo, richTagInfo.value)].Add((richTagInfo.startIndex, richTagInfo.endIndex));
+                    pairedActions[(actionInfo, richTagInfo.value, richTagInfo.nestLayer)].Add((richTagInfo.startIndex, richTagInfo.endIndex));
                 }
             }
         }
 
-        class ActionInfoComparer : IEqualityComparer<(ActionInfo actionInfo, string[] value)> {
-            public bool Equals((ActionInfo actionInfo, string[] value) x, (ActionInfo actionInfo, string[] value) y) {
+        class ActionInfoComparer : IEqualityComparer<(ActionInfo actionInfo, string[] value, int nestLayer)> {
+            public bool Equals((ActionInfo actionInfo, string[] value, int nestLayer) x, (ActionInfo actionInfo, string[] value, int nestLayer) y) {
+                if (x.nestLayer != y.nestLayer) return false;
                 if (x.actionInfo != y.actionInfo) return false;
                 if (x.value.Equals(y.value)) return true;
 
                 if (x.value.Length != y.value.Length) return false;
 
                 for (var i = 0; i < x.value.Length; i++) {
-                    if (!x.value[i].Equals(y.value[i], StringComparison.OrdinalIgnoreCase)) return false;
+                    if (!x.value[i].Equals(y.value[i])) return false;
                 }
                 return true;
             }
-            public int GetHashCode((ActionInfo actionInfo, string[] value) obj) {
+            public int GetHashCode((ActionInfo actionInfo, string[] value, int nestLayer) obj) {
                 if (obj.actionInfo == null && obj.value == null) {
                     return 0;
                 }
@@ -594,7 +598,6 @@ namespace TMPPlayer {
                 return hash;
             }
         }
-
     }
 
     internal struct RichTagInfo {
@@ -602,6 +605,6 @@ namespace TMPPlayer {
         internal int startIndex;
         internal int endIndex;
         internal string[] value;
-
+        internal int nestLayer;
     }
 }
