@@ -31,6 +31,9 @@ namespace TMPPlayer {
         TMP_MeshInfo[] cachedMeshInfo;
         public TMP_MeshInfo[] CachedMeshInfo { get { return cachedMeshInfo; } }
 
+        TMP_MeshInfo[] backedUpMeshInfo;
+        Dictionary<TMP_VertexDataUpdateFlags, HashSet<(int materialReferenceIndex, int vertexIndex)>> backUpIndices;
+
         TMP_VertexDataUpdateFlags updateFlags = TMP_VertexDataUpdateFlags.None;
 
         int lastInvokeIndex;
@@ -46,23 +49,17 @@ namespace TMPPlayer {
         public int VisibleCount { get; private set; }
 
 
-        // BUG 从Disable复原 TMP 后会强制刷新所有 mesh 显示所有文字，暂时找不到解决办法
-        /*void OnEnable() {
-            // TMPro_EventManager.TEXT_CHANGED_EVENT.Add(OnTextChanged);
+        void OnEnable() {
             if (IsTyping) StartCoroutine(TypeWriter(typeWriterTokenSource.Token));
-        }*/
-
-        /*void OnDisable() {
-            Debug.Log(this);
-            // TMPro_EventManager.TEXT_CHANGED_EVENT.Remove(OnTextChanged);
-        }*/
+        }
 
         void Start() {
             if (TextMeshPro == null) TextMeshPro = GetComponent<TMP_Text>();
             if (TextMeshPro.text != null) {
                 SetText(TextMeshPro.text);
             }
-
+            // 在 UI 被各种因素刷新的时候恢复已经改变的网格信息
+            TextMeshPro.OnPreRenderText += RecoverMeshInfo;
         }
 
         void OnDestroy() {
@@ -79,24 +76,200 @@ namespace TMPPlayer {
 
         }
 
-        /*void OnTextChanged(object obj) {
-            if ((TextMeshProUGUI)obj == textMeshPro) {
-            }
-        }*/
-
-        public void AddUpdateFlags(TMP_VertexDataUpdateFlags updateFlag) {
-            updateFlags |= updateFlag;
+        /// <summary>
+        /// 记录本帧要更新渲染的 flag，如果想要 OnPreRenderText 刷新 UI 时恢复到本次修改而非恢复到初始状态，请填写需要记录的 indices
+        /// </summary>
+        /// <param name="updateFlags">需要更新渲染的 flags</param>
+        /// <param name="indices">需要记录的 materialReferenceIndex 及其材质中的 vertexIndex</param>
+        public void AddUpdateFlags(TMP_VertexDataUpdateFlags updateFlags, HashSet<(int materialReferenceIndex, int vertexIndex)> indices = null) {
+            if (indices is { Count: > 0 }) BackUpMeshInfo(updateFlags, indices);
+            this.updateFlags |= updateFlags;
         }
 
-        public void RemoveUpdateFlags(TMP_VertexDataUpdateFlags updateFlag) {
-            updateFlags &= ~updateFlag;
+        /// <summary>
+        /// 记录本帧要更新渲染的 flag，如果想要 OnPreRenderText 刷新 UI 时恢复到本次修改而非恢复到初始状态，请填写需要记录的 indices
+        /// </summary>
+        /// <param name="updateFlags">需要更新渲染的 flags</param>
+        /// <param name="materialReferenceIndex">需要记录的 materialReferenceIndex</param>
+        /// <param name="vertexIndex">materialReferenceIndex 所代表的材质中需要记录的 vertexIndex</param>
+        public void AddUpdateFlags(TMP_VertexDataUpdateFlags updateFlags, int materialReferenceIndex, int vertexIndex) {
+            BackUpMeshInfo(updateFlags, null, materialReferenceIndex, vertexIndex);
+            this.updateFlags |= updateFlags;
         }
 
+        /// <summary>
+        /// 移除本帧要更新的 flag
+        /// </summary>
+        /// <param name="updateFlags">需要移除更新渲染的 flags</param>
+        public void RemoveUpdateFlags(TMP_VertexDataUpdateFlags updateFlags) {
+            this.updateFlags &= ~updateFlags;
+        }
+
+        /// <summary>
+        /// 检查本帧是否需要更新此 flag
+        /// </summary>
+        /// <param name="updateFlags">需要检查的 flags</param>
+        /// <returns></returns>
         public bool CheckUpdateFlags(TMP_VertexDataUpdateFlags updateFlags) {
-            return (this.updateFlags & updateFlags) != 0;
+            // return (this.updateFlags & updateFlags) != 0;
+            return this.updateFlags.HasFlag(updateFlags);
         }
 
-        void InitMeshInfo(bool isAdditive = false) {
+        // 根据索引备份网格
+        void BackUpMeshInfo(TMP_VertexDataUpdateFlags updateFlag, HashSet<(int, int)> indices, int materialReferenceIndex = -1, int vertexIndex = -1) {
+            TMP_MeshInfo[] meshInfo = TextMeshPro.textInfo.meshInfo;
+            backUpIndices ??= new Dictionary<TMP_VertexDataUpdateFlags, HashSet<(int, int)>>();
+            backedUpMeshInfo ??= new TMP_MeshInfo[meshInfo.Length];
+            if (backedUpMeshInfo.Length < meshInfo.Length) Array.Resize(ref backedUpMeshInfo, meshInfo.Length);
+
+            if (indices == null) {
+                BackUpMeshInfoProcess(materialReferenceIndex, vertexIndex);
+                return;
+            }
+
+            foreach ((int materialReferenceIndex, int vertexIndex) tuple in indices) {
+                // backUpIndices[TMP_VertexDataUpdateFlags.Colors32].Add(tuple);
+                materialReferenceIndex = tuple.materialReferenceIndex;
+                vertexIndex = tuple.vertexIndex;
+                BackUpMeshInfoProcess(materialReferenceIndex, vertexIndex, indices);
+            }
+
+            void BackUpMeshInfoProcess(int mrIndex, int vtIndex, HashSet<(int, int)> hashSet = null) {
+                int length = meshInfo[mrIndex].vertices.Length;
+
+                if (updateFlag.HasFlag(TMP_VertexDataUpdateFlags.Colors32)) {
+                    bool freshHashSet = backUpIndices.TryAdd(TMP_VertexDataUpdateFlags.Colors32, hashSet ?? new HashSet<(int, int)>());
+                    if (!freshHashSet || hashSet == null)
+                        backUpIndices[TMP_VertexDataUpdateFlags.Colors32].Add((mrIndex, vtIndex));
+
+                    if (backedUpMeshInfo[mrIndex].colors32 == null || backedUpMeshInfo[mrIndex].colors32.Length < length)
+                        backedUpMeshInfo[mrIndex].colors32 = new Color32[length];
+
+                    backedUpMeshInfo[mrIndex].colors32[vtIndex] = meshInfo[mrIndex].colors32[vtIndex];
+                    backedUpMeshInfo[mrIndex].colors32[vtIndex + 1] = meshInfo[mrIndex].colors32[vtIndex + 1];
+                    backedUpMeshInfo[mrIndex].colors32[vtIndex + 2] = meshInfo[mrIndex].colors32[vtIndex + 2];
+                    backedUpMeshInfo[mrIndex].colors32[vtIndex + 3] = meshInfo[mrIndex].colors32[vtIndex + 3];
+                }
+
+                if (updateFlag.HasFlag(TMP_VertexDataUpdateFlags.Vertices)) {
+                    bool freshHashSet = backUpIndices.TryAdd(TMP_VertexDataUpdateFlags.Vertices, hashSet ?? new HashSet<(int, int)>());
+                    if (!freshHashSet || hashSet == null)
+                        backUpIndices[TMP_VertexDataUpdateFlags.Vertices].Add((mrIndex, vtIndex));
+
+                    if (backedUpMeshInfo[mrIndex].vertices == null || backedUpMeshInfo[mrIndex].vertices.Length < length)
+                        backedUpMeshInfo[mrIndex].vertices = new Vector3[length];
+
+                    backedUpMeshInfo[mrIndex].vertices[vtIndex] = meshInfo[mrIndex].vertices[vtIndex];
+                    backedUpMeshInfo[mrIndex].vertices[vtIndex + 1] = meshInfo[mrIndex].vertices[vtIndex + 1];
+                    backedUpMeshInfo[mrIndex].vertices[vtIndex + 2] = meshInfo[mrIndex].vertices[vtIndex + 2];
+                    backedUpMeshInfo[mrIndex].vertices[vtIndex + 3] = meshInfo[mrIndex].vertices[vtIndex + 3];
+                }
+
+                if (updateFlag.HasFlag(TMP_VertexDataUpdateFlags.Uv0)) {
+                    bool freshHashSet = backUpIndices.TryAdd(TMP_VertexDataUpdateFlags.Uv0, hashSet ?? new HashSet<(int, int)>());
+                    if (!freshHashSet || hashSet == null)
+                        backUpIndices[TMP_VertexDataUpdateFlags.Uv0].Add((mrIndex, vtIndex));
+
+                    if (backedUpMeshInfo[mrIndex].uvs0 == null || backedUpMeshInfo[mrIndex].uvs0.Length < length)
+                        backedUpMeshInfo[mrIndex].uvs0 = new Vector2[length];
+
+                    backedUpMeshInfo[mrIndex].uvs0[vtIndex] = meshInfo[mrIndex].uvs0[vtIndex];
+                    backedUpMeshInfo[mrIndex].uvs0[vtIndex + 1] = meshInfo[mrIndex].uvs0[vtIndex + 1];
+                    backedUpMeshInfo[mrIndex].uvs0[vtIndex + 2] = meshInfo[mrIndex].uvs0[vtIndex + 2];
+                    backedUpMeshInfo[mrIndex].uvs0[vtIndex + 3] = meshInfo[mrIndex].uvs0[vtIndex + 3];
+                }
+
+                if (updateFlag.HasFlag(TMP_VertexDataUpdateFlags.Uv2)) {
+                    bool freshHashSet = backUpIndices.TryAdd(TMP_VertexDataUpdateFlags.Uv2, hashSet ?? new HashSet<(int, int)>());
+                    if (!freshHashSet || hashSet == null)
+                        backUpIndices[TMP_VertexDataUpdateFlags.Uv2].Add((mrIndex, vtIndex));
+
+                    if (backedUpMeshInfo[mrIndex].uvs2 == null || backedUpMeshInfo[mrIndex].uvs2.Length < length)
+                        backedUpMeshInfo[mrIndex].uvs2 = new Vector2[length];
+
+                    backedUpMeshInfo[mrIndex].uvs2[vtIndex] = meshInfo[mrIndex].uvs2[vtIndex];
+                    backedUpMeshInfo[mrIndex].uvs2[vtIndex + 1] = meshInfo[mrIndex].uvs2[vtIndex + 1];
+                    backedUpMeshInfo[mrIndex].uvs2[vtIndex + 2] = meshInfo[mrIndex].uvs2[vtIndex + 2];
+                    backedUpMeshInfo[mrIndex].uvs2[vtIndex + 3] = meshInfo[mrIndex].uvs2[vtIndex + 3];
+                }
+            }
+        }
+
+        // 根据备份的索引去还原需要复原的网格
+        void RecoverMeshInfo(TMP_TextInfo textInfo) {
+
+            RefreshCachedMeshInfo();
+            TMP_MeshInfo[] meshInfo = textInfo.meshInfo;
+
+            HideMeshInfo(VisibleCount);
+            if (backUpIndices == null) return;
+
+            if (backUpIndices.TryGetValue(TMP_VertexDataUpdateFlags.Colors32, out HashSet<(int, int)> colorIndices)) {
+                foreach ((int i, int vertexIndex) in colorIndices) {
+                    //TODO 判断meshInfo长度防止变短（应该是不会变短吧暂时不写了）
+                    meshInfo[i].colors32[vertexIndex] = backedUpMeshInfo[i].colors32[vertexIndex];
+                    meshInfo[i].colors32[vertexIndex + 1] = backedUpMeshInfo[i].colors32[vertexIndex + 1];
+                    meshInfo[i].colors32[vertexIndex + 2] = backedUpMeshInfo[i].colors32[vertexIndex + 2];
+                    meshInfo[i].colors32[vertexIndex + 3] = backedUpMeshInfo[i].colors32[vertexIndex + 3];
+                }
+            }
+
+            if (backUpIndices.TryGetValue(TMP_VertexDataUpdateFlags.Vertices, out HashSet<(int, int)> vertexIndices)) {
+                foreach ((int i, int vertexIndex) in vertexIndices) {
+                    meshInfo[i].vertices[vertexIndex] = backedUpMeshInfo[i].vertices[vertexIndex];
+                    meshInfo[i].vertices[vertexIndex + 1] = backedUpMeshInfo[i].vertices[vertexIndex + 1];
+                    meshInfo[i].vertices[vertexIndex + 2] = backedUpMeshInfo[i].vertices[vertexIndex + 2];
+                    meshInfo[i].vertices[vertexIndex + 3] = backedUpMeshInfo[i].vertices[vertexIndex + 3];
+                }
+            }
+
+            if (backUpIndices.TryGetValue(TMP_VertexDataUpdateFlags.Uv0, out HashSet<(int, int)> uv0Indices)) {
+                foreach ((int i, int vertexIndex) in uv0Indices) {
+                    meshInfo[i].uvs0[vertexIndex] = backedUpMeshInfo[i].uvs0[vertexIndex];
+                    meshInfo[i].uvs0[vertexIndex + 1] = backedUpMeshInfo[i].uvs0[vertexIndex + 1];
+                    meshInfo[i].uvs0[vertexIndex + 2] = backedUpMeshInfo[i].uvs0[vertexIndex + 2];
+                    meshInfo[i].uvs0[vertexIndex + 3] = backedUpMeshInfo[i].uvs0[vertexIndex + 3];
+                }
+            }
+
+            if (backUpIndices.TryGetValue(TMP_VertexDataUpdateFlags.Uv2, out HashSet<(int, int)> uv2Indices)) {
+                foreach ((int i, int vertexIndex) in uv2Indices) {
+                    meshInfo[i].uvs2[vertexIndex] = backedUpMeshInfo[i].uvs2[vertexIndex];
+                    meshInfo[i].uvs2[vertexIndex + 1] = backedUpMeshInfo[i].uvs2[vertexIndex + 1];
+                    meshInfo[i].uvs2[vertexIndex + 2] = backedUpMeshInfo[i].uvs2[vertexIndex + 2];
+                    meshInfo[i].uvs2[vertexIndex + 3] = backedUpMeshInfo[i].uvs2[vertexIndex + 3];
+                }
+            }
+        }
+
+        void HideMeshInfo(int indexBegin = 0) {
+            TMP_MeshInfo[] meshInfo = TextMeshPro.textInfo.meshInfo;
+            int index = indexBegin;
+
+            while (index < TextMeshPro.textInfo.characterCount) {
+                if (index >= 0) {
+                    if (TextMeshPro.textInfo.characterInfo[index].isVisible) {
+
+                        int materialIndex = TextMeshPro.textInfo.characterInfo[index].materialReferenceIndex;
+                        int vertexCount = TextMeshPro.textInfo.characterInfo[index].vertexIndex;
+
+                        meshInfo[materialIndex].colors32[vertexCount].a = 0;
+                        meshInfo[materialIndex].colors32[vertexCount + 1].a = 0;
+                        meshInfo[materialIndex].colors32[vertexCount + 2].a = 0;
+                        meshInfo[materialIndex].colors32[vertexCount + 3].a = 0;
+
+                        // 下面的注释是用于测试，以黑色来表示还未显示的文字
+                        /*meshInfo[materialIndex].colors32[vertexCount] = new Color32(0, 0, 0, 255);
+                        meshInfo[materialIndex].colors32[vertexCount + 1] = new Color32(0, 0, 0, 255);
+                        meshInfo[materialIndex].colors32[vertexCount + 2] = new Color32(0, 0, 0, 255);
+                        meshInfo[materialIndex].colors32[vertexCount + 3] = new Color32(0, 0, 0, 255);*/
+                    }
+                }
+                index++;
+            }
+        }
+
+        void RefreshCachedMeshInfo() {
             TMP_MeshInfo[] meshInfo = TextMeshPro.textInfo.meshInfo;
             cachedMeshInfo ??= new TMP_MeshInfo[meshInfo.Length];
 
@@ -115,34 +288,17 @@ namespace TMPPlayer {
                 Array.Copy(meshInfo[i].uvs2, cachedMeshInfo[i].uvs2, length);
                 Array.Copy(meshInfo[i].colors32, cachedMeshInfo[i].colors32, length);
             }
+        }
+
+        void InitMeshInfo(bool isAdditive = false) {
+            // TMP_MeshInfo[] meshInfo = TextMeshPro.textInfo.meshInfo;
+            RefreshCachedMeshInfo();
             // 判断打字机效果隐藏文字
             if (isTypeWriter) {
                 int index = isAdditive ? VisibleCount : 0;
-                while (index < TextMeshPro.textInfo.characterCount) {
-                    if (index >= 0) {
-                        if (TextMeshPro.textInfo.characterInfo[index].isVisible) {
-
-                            int materialIndex = TextMeshPro.textInfo.characterInfo[index].materialReferenceIndex;
-                            int vertexCount = TextMeshPro.textInfo.characterInfo[index].vertexIndex;
-
-                            meshInfo[materialIndex].colors32[vertexCount].a = 0;
-                            meshInfo[materialIndex].colors32[vertexCount + 1].a = 0;
-                            meshInfo[materialIndex].colors32[vertexCount + 2].a = 0;
-                            meshInfo[materialIndex].colors32[vertexCount + 3].a = 0;
-
-                            // 下面的注释是用于测试，以黑色来表示还未显示的文字
-                            /*meshInfo[materialIndex].colors32[vertexCount] = new Color32(0, 0, 0, 255);
-                            meshInfo[materialIndex].colors32[vertexCount + 1] = new Color32(0, 0, 0, 255);
-                            meshInfo[materialIndex].colors32[vertexCount + 2] = new Color32(0, 0, 0, 255);
-                            meshInfo[materialIndex].colors32[vertexCount + 3] = new Color32(0, 0, 0, 255);*/
-                        }
-                    }
-                    index++;
-                }
-
+                HideMeshInfo(index);
                 TextMeshPro.UpdateVertexData(TMP_VertexDataUpdateFlags.Colors32);
                 // AddUpdateFlags(TMP_VertexDataUpdateFlags.Colors32);
-
             }
 
         }
@@ -232,8 +388,7 @@ namespace TMPPlayer {
 
             IsTyping = false;
             IsHardSkipping = false;
-            // lastInvokeIndex = TextMeshPro.text.Length - 1;
-            // TextMeshPro.UpdateVertexData(TMP_VertexDataUpdateFlags.Colors32);
+            backUpIndices?.Clear(); // 清除所有需要复原的
 
             if (VisibleCount > TextMeshPro.textInfo.characterCount) VisibleCount = TextMeshPro.textInfo.characterCount;
             if (lastInvokeIndex >= TextMeshPro.text.Length) lastInvokeIndex = TextMeshPro.text.Length;
@@ -321,7 +476,7 @@ namespace TMPPlayer {
         void ShowText(bool isAdditive = false) {
             // 初始化
             TextMeshPro.ForceMeshUpdate();
-            // if (!isAdditive)
+            if (!isAdditive) backUpIndices?.Clear();
 
             if (!isAdditive && typeWriterTokenSource is { IsCancellationRequested: false }) {
                 typeWriterTokenSource.Cancel();
@@ -346,7 +501,7 @@ namespace TMPPlayer {
                 lastInvokeIndex = TextMeshPro.text.Length - 1;
                 // AddUpdateFlags(TMP_VertexDataUpdateFlags.Colors32);
             }
-            
+
             // 触发成对 Action
             foreach (var tuple in pairedActions.Keys)
                 tuple.actionInfo.Invoke(this, actionTokenSource.Token, pairedActions[tuple], tuple.value);
@@ -380,7 +535,7 @@ namespace TMPPlayer {
             NextChar = VisibleCount < TextMeshPro.textInfo.characterCount ? TextMeshPro.textInfo.characterInfo[VisibleCount] : new TMP_CharacterInfo { character = '\0' };
         }
 
-        bool isFuncWaiting = false;
+        bool isFuncWaiting;
         IEnumerator TypeWriter(CancellationToken token) {
             IsTyping = true;
             while (VisibleCount <= TextMeshPro.textInfo.characterCount && !token.IsCancellationRequested) {
@@ -452,6 +607,7 @@ namespace TMPPlayer {
             if (lastInvokeIndex >= TextMeshPro.text.Length) lastInvokeIndex = TextMeshPro.text.Length;
 
             IsTyping = false;
+            backUpIndices?.Clear();
         }
 
         /*bool ShouldDelay(char c) {
@@ -561,7 +717,7 @@ namespace TMPPlayer {
 
                 } else {
                     ActionInfo actionInfo = TMPPlayerRichTagManager.GetActionInfo(richTagInfo.type);
-                    if (!pairedActions.ContainsKey((actionInfo, richTagInfo.value, richTagInfo.nestLayer))) 
+                    if (!pairedActions.ContainsKey((actionInfo, richTagInfo.value, richTagInfo.nestLayer)))
                         pairedActions.Add((actionInfo, richTagInfo.value, richTagInfo.nestLayer), new List<(int start, int end)>());
 
                     pairedActions[(actionInfo, richTagInfo.value, richTagInfo.nestLayer)].Add((richTagInfo.startIndex, richTagInfo.endIndex));
