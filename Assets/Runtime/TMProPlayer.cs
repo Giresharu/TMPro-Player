@@ -68,7 +68,6 @@ namespace TMPPlayer {
                 if (!typeWriterTokenSource.IsCancellationRequested) typeWriterTokenSource.Cancel();
                 typeWriterTokenSource.Dispose();
             }
-
         }
 
         /// <summary>
@@ -196,7 +195,7 @@ namespace TMPPlayer {
             RefreshCachedMeshInfo();
             TMP_MeshInfo[] meshInfo = textInfo.meshInfo;
 
-            HideMeshInfo(VisibleCount);
+            HideMeshInfo(VisibleCount - 1);
             if (backUpIndices == null) return;
 
             if (backUpIndices.TryGetValue(TMP_VertexDataUpdateFlags.Colors32, out HashSet<(int, int)> colorIndices)) {

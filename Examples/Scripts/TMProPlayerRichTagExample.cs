@@ -151,6 +151,8 @@ public class TMProPlayerRichTagExample : TMPPlayerRichTagManager {
                 continue;
             }
 
+            HashSet<(int, int)> backUpIndices = new HashSet<(int, int)>();
+
             foreach (int i in indexInRange) {
                 if (token.IsCancellationRequested) break;
 
@@ -172,9 +174,10 @@ public class TMProPlayerRichTagExample : TMPPlayerRichTagManager {
                 dstVertices[vertexIndex + 2] = srcVertices[vertexIndex + 2] + offset;
                 dstVertices[vertexIndex + 3] = srcVertices[vertexIndex + 3] + offset;
 
+                backUpIndices.Add((materialIndex, vertexIndex));
             }
 
-            if (tmpp.VisibleCount > 0) tmpp.AddUpdateFlags(TMP_VertexDataUpdateFlags.Vertices);
+            if (tmpp.VisibleCount > 0) tmpp.AddUpdateFlags(TMP_VertexDataUpdateFlags.Vertices, backUpIndices);
 
 
             if (Time.time - startTime - pausedTime > 1f / frequency) {
