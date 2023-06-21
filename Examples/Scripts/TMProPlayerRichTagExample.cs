@@ -10,7 +10,7 @@ public class TMProPlayerRichTagExample : TMPPlayerRichTagManager {
     protected override void Initialize() {
         base.Initialize();
         SetActionInfo(args => StartCoroutine(Shake((TMProPlayer)args[0], (float)args[1], (float)args[2], (float)args[3], (CancellationToken)args[4], (List<(int, int)>)args[5])), "Shake", true, "shake", "Shake", "sh", "Sh");
-        SetActionInfo(args => StartCoroutine(Appear((TMProPlayer)args[0], (int)args[1], (CancellationToken)args[2], (List<(int, int)>)args[3])), "Appear", true, "appear", "Appear","Ap","ap");
+        SetActionInfo(args => StartCoroutine(Appear((TMProPlayer)args[0], (int)args[1], (CancellationToken)args[2], (List<(int, int)>)args[3])), "Appear", true, "appear", "Appear", "Ap", "ap");
         SetActionInfo(args => StartCoroutine(Wave((TMProPlayer)args[0], (float)args[1], (float)args[2], (float)args[3], (CancellationToken)args[4], (List<(int, int)>)args[5])), "Wave", true, "Wave", "wave", "Wa", "wa");
     }
 
@@ -23,7 +23,12 @@ public class TMProPlayerRichTagExample : TMPPlayerRichTagManager {
 
         int lastVisibleCount = 0;
         while (isAppearInRange.Count > 0 && !token.IsCancellationRequested) {
-            while (lastVisibleCount < tmpp.VisibleCount && !token.IsCancellationRequested) {
+            if (!tmpp.isActiveAndEnabled || !tmpp.TextMeshPro.isActiveAndEnabled) {
+                yield return null;
+                continue;
+            }
+
+            while (lastVisibleCount < tmpp.VisibleCount) {
                 lastVisibleCount++;
                 if (isAppearInRange.Contains(lastVisibleCount - 1)) {
                     isAppearInRange.Remove(lastVisibleCount - 1);
@@ -37,10 +42,17 @@ public class TMProPlayerRichTagExample : TMPPlayerRichTagManager {
             if (!textInfo.characterInfo[i].isVisible) yield break;
 
             float startTime = Time.time;
+            float pausedTime = 0;
 
             while (!token.IsCancellationRequested) {
 
-                float alpha = Mathf.Clamp01((Time.time - startTime) * 1000 / time);
+                if (!tmpp.isActiveAndEnabled || !tmpp.TextMeshPro.isActiveAndEnabled) {
+                    yield return null;
+                    pausedTime += Time.deltaTime;
+                    continue;
+                }
+
+                float alpha = Mathf.Clamp01((Time.time - startTime - pausedTime) * 1000 / time);
 
                 int materialIndex = textInfo.characterInfo[i].materialReferenceIndex;
                 int vertexIndex = textInfo.characterInfo[i].vertexIndex;
@@ -52,8 +64,8 @@ public class TMProPlayerRichTagExample : TMPPlayerRichTagManager {
                 dstColors[vertexIndex + 1].a = (byte)Mathf.Clamp(srcColors[vertexIndex + 1].a * alpha, 0, 255);
                 dstColors[vertexIndex + 2].a = (byte)Mathf.Clamp(srcColors[vertexIndex + 2].a * alpha, 0, 255);
                 dstColors[vertexIndex + 3].a = (byte)Mathf.Clamp(srcColors[vertexIndex + 3].a * alpha, 0, 255);
-                
-                tmpp.AddUpdateFlags(TMP_VertexDataUpdateFlags.Colors32);
+
+                tmpp.AddUpdateFlags(TMP_VertexDataUpdateFlags.Colors32, materialIndex, vertexIndex);
 
                 if (alpha >= 1) yield break;
 
@@ -75,7 +87,7 @@ public class TMProPlayerRichTagExample : TMPPlayerRichTagManager {
 
         while (!token.IsCancellationRequested) {
             // 当 disable 时暂停本协程
-            if (!tmpp.isActiveAndEnabled || textInfo.characterCount == 0) {
+            if (!tmpp.isActiveAndEnabled || !tmpp.TextMeshPro.isActiveAndEnabled || textInfo.characterCount == 0) {
                 yield return null;
                 continue;
             }
@@ -127,13 +139,15 @@ public class TMProPlayerRichTagExample : TMPPlayerRichTagManager {
         TMP_TextInfo textInfo = tmpp.TextMeshPro.textInfo;
 
         float startTime = Time.time;
+        float pausedTime = 0;
 
         List<int> indexInRange = IndicesInRange(textInfo, ranges);
 
         while (!token.IsCancellationRequested) {
 
-            if (!tmpp.isActiveAndEnabled || textInfo.characterCount == 0) {
+            if (!tmpp.isActiveAndEnabled || !tmpp.TextMeshPro.isActiveAndEnabled || textInfo.characterCount == 0) {
                 yield return null;
+                pausedTime += Time.deltaTime;
                 continue;
             }
 
@@ -143,7 +157,7 @@ public class TMProPlayerRichTagExample : TMPPlayerRichTagManager {
                 TMP_CharacterInfo characterInfo = textInfo.characterInfo[i];
                 if (!characterInfo.isVisible) continue;
 
-                float theta = ((Time.time - startTime) * frequency - phaseshift * i) * 2f * Mathf.PI;
+                float theta = ((Time.time - startTime - pausedTime) * frequency - phaseshift * i) * 2f * Mathf.PI;
                 float distance = Mathf.Sin(theta) * amplitude;
                 Vector3 offset = Vector3.up * distance;
 
@@ -163,8 +177,9 @@ public class TMProPlayerRichTagExample : TMPPlayerRichTagManager {
             if (tmpp.VisibleCount > 0) tmpp.AddUpdateFlags(TMP_VertexDataUpdateFlags.Vertices);
 
 
-            if (Time.time - startTime > 1f / frequency) {
+            if (Time.time - startTime - pausedTime > 1f / frequency) {
                 startTime = Time.time;
+                pausedTime = 0;
             }
             yield return null;
         }

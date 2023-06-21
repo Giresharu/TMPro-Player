@@ -48,11 +48,6 @@ namespace TMPPlayer {
         public bool IsTyping { get; private set; }
         public int VisibleCount { get; private set; }
 
-
-        void OnEnable() {
-            if (IsTyping) StartCoroutine(TypeWriter(typeWriterTokenSource.Token));
-        }
-
         void Start() {
             if (TextMeshPro == null) TextMeshPro = GetComponent<TMP_Text>();
             if (TextMeshPro.text != null) {
@@ -540,7 +535,7 @@ namespace TMPPlayer {
             IsTyping = true;
             while (VisibleCount <= TextMeshPro.textInfo.characterCount && !token.IsCancellationRequested) {
 
-                if (!isActiveAndEnabled) {
+                if (!isActiveAndEnabled || !TextMeshPro.isActiveAndEnabled) {
                     yield return null;
                     continue;
                 }
