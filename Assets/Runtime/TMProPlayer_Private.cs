@@ -130,7 +130,7 @@ namespace TMPPlayer {
             RefreshCachedMeshInfo();
             TMP_MeshInfo[] meshInfo = textInfo.meshInfo;
 
-            HideMeshInfo(VisibleCount - 1);
+            HideMeshInfo(VisibleCount);
             if (backUpIndices == null) return;
 
             if (backUpIndices.TryGetValue(TMP_VertexDataUpdateFlags.Colors32, out HashSet<(int, int)> colorIndices)) {
@@ -197,7 +197,7 @@ namespace TMPPlayer {
                 index++;
             }
         }
-
+        //TODO 在非 Recover 的时候优化掉前面的部分
         void RefreshCachedMeshInfo() {
             TMP_MeshInfo[] meshInfo = TextMeshPro.textInfo.meshInfo;
             cachedMeshInfo ??= new TMP_MeshInfo[meshInfo.Length];
@@ -217,17 +217,17 @@ namespace TMPPlayer {
                 Array.Copy(meshInfo[i].uvs2, cachedMeshInfo[i].uvs2, length);
                 Array.Copy(meshInfo[i].colors32, cachedMeshInfo[i].colors32, length);
             }
+            hasRecoverInFrame = true;
         }
 
-        void InitMeshInfo(bool isAdditive = false) {
-            // TMP_MeshInfo[] meshInfo = TextMeshPro.textInfo.meshInfo;
+        bool hasRecoverInFrame;
+        void InitMeshInfo() {
+            if (hasRecoverInFrame) return;
             RefreshCachedMeshInfo();
             // 判断打字机效果隐藏文字
             if (isTypeWriter) {
-                int index = isAdditive ? VisibleCount : 0;
-                HideMeshInfo(index);
+                HideMeshInfo();
                 TextMeshPro.UpdateVertexData(TMP_VertexDataUpdateFlags.Colors32);
-                // AddUpdateFlags(TMP_VertexDataUpdateFlags.Colors32);
             }
 
         }
@@ -281,16 +281,14 @@ namespace TMPPlayer {
                 VisibleCount++;
             }
 
-            if (VisibleCount > TextMeshPro.textInfo.characterCount) VisibleCount = TextMeshPro.textInfo.characterCount;
-            if (lastInvokeIndex >= TextMeshPro.text.Length) lastInvokeIndex = TextMeshPro.text.Length;
+            if (VisibleCount > TextMeshPro.textInfo.characterCount) VisibleCount--;
             // softSkipOn = false;
             IsSoftSkipping = false;
         }
 
-        void ShowText(bool isAdditive = false) {
+        void ShowText(bool isAdditive = false, int textLength = 0) {
             // 初始化
             TextMeshPro.ForceMeshUpdate();
-            if (!isAdditive) backUpIndices?.Clear();
 
             if (!isAdditive && typeWriterTokenSource is { IsCancellationRequested: false }) {
                 typeWriterTokenSource.Cancel();
@@ -300,7 +298,7 @@ namespace TMPPlayer {
 
             typeWriterTokenSource ??= new CancellationTokenSource();
 
-            InitMeshInfo(isAdditive);
+            InitMeshInfo();
             Delay = defaultDelay;
 
             if (isTypeWriter) {
@@ -309,11 +307,14 @@ namespace TMPPlayer {
             } else {
                 // typeWriterQueue.Clear();
                 while (VisibleCount <= TextMeshPro.textInfo.characterCount) {
+                    // 防止被不显示第二个起的字
+                    RemoveUpdateFlags(TMP_VertexDataUpdateFlags.Colors32);
+                    //TODO >0 改成成 >上次的文字数量
                     if (VisibleCount > 0 && TextMeshPro.textInfo.characterInfo[VisibleCount - 1].isVisible) DisplayCharacter();
                     VisibleCount++;
                 }
-                lastInvokeIndex = TextMeshPro.text.Length - 1;
-                // AddUpdateFlags(TMP_VertexDataUpdateFlags.Colors32);
+                singleActions.Clear();
+                lastInvokeIndex = textLength + 1;
             }
 
             // 触发成对 Action
@@ -364,6 +365,7 @@ namespace TMPPlayer {
                 if (Delay <= 0) RemoveUpdateFlags(TMP_VertexDataUpdateFlags.Colors32);
                 DisplayCharacter();
 
+                //TODO 应该去判断 VisibleCount 是否大于上次结束打字机效果时的字数，意义等同于 > 0
                 if (VisibleCount > 0 /*&& ShouldDelay(CurrentChar)*/ && TextMeshPro.textInfo.characterInfo[VisibleCount - 1].isVisible) {
                     // Debug.Log(CurrentChar);
                     float startTime = Time.time;
@@ -382,6 +384,7 @@ namespace TMPPlayer {
                     yield return null;
                 }
 
+                //TODO 合并到上面的 IsSoftSkipping 里
                 if (token.IsCancellationRequested) {
                     IsTyping = false;
                     yield break;
@@ -390,8 +393,11 @@ namespace TMPPlayer {
                 // 解决会被自动隐藏的 tmp 自带标签不被算进 character 但是有被我们用来计算了 action 的 start 以及 end 的问题；
                 // 当目前遍历到的 lastInvokeIndex 不能与当前 visible 的最后一个 character 的 index 匹配时；
                 // 就一边递增 lastInvokeIndex 一边把对应的 action 执行掉
-                while ((VisibleCount < TextMeshPro.textInfo.characterCount && lastInvokeIndex <= TextMeshPro.textInfo.characterInfo[VisibleCount].index) ||
-                       (VisibleCount == TextMeshPro.textInfo.characterCount && lastInvokeIndex <= TextMeshPro.text.Length)) { // 当所有文字都显示完毕后，还要继续触发后面的标签
+                // 这里 VisibleCount 作为索引不 - 1 是因为处理的是下一个字之前的标签
+                while (VisibleCount < TextMeshPro.textInfo.characterCount
+                    && lastInvokeIndex <= TextMeshPro.textInfo.characterInfo[VisibleCount].index
+                    || VisibleCount == TextMeshPro.textInfo.characterCount
+                    && lastInvokeIndex <= TextMeshPro.textInfo.characterInfo[VisibleCount].index) { // 当所有文字都显示完毕后，还要继续触发后面的标签
 
                     if (singleActions.TryGetValue(lastInvokeIndex, out var tuples)) {
                         for (int i = tupleIndexHasInvoke + 1; i < tuples.Count; i++) {
@@ -416,8 +422,8 @@ namespace TMPPlayer {
                 VisibleCount++;
             }
 
-            if (VisibleCount > TextMeshPro.textInfo.characterCount) VisibleCount = TextMeshPro.textInfo.characterCount;
-            if (lastInvokeIndex >= TextMeshPro.text.Length) lastInvokeIndex = TextMeshPro.text.Length;
+            if (VisibleCount > TextMeshPro.textInfo.characterCount) VisibleCount--;
+            // if (lastInvokeIndex >= TextMeshPro.textInfo.characterInfo[VisibleCount - 1].index) lastInvokeIndex--;
 
             IsTyping = false;
             backUpIndices?.Clear();

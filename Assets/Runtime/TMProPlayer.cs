@@ -16,7 +16,7 @@ namespace TMPPlayer {
         public float timeScale = 1;
         // public char[] delayBlackList;
 
-        
+
         public int Delay { get; set; }
         public TMP_Text TextMeshPro { get; private set; }
         public TMP_CharacterInfo CurrentChar { get; private set; }
@@ -27,7 +27,7 @@ namespace TMPPlayer {
 
         public bool IsTyping { get; private set; }
         public int VisibleCount { get; private set; }
-        
+
         public bool IsSkipping { get { return IsSoftSkipping || IsHardSkipping; } }
         public bool IsHardSkipping { get; private set; }
         public bool IsSoftSkipping { get; private set; }
@@ -74,10 +74,12 @@ namespace TMPPlayer {
         }
 
         public void LateUpdate() {
-            if (updateFlags == 0) return;
+            if (updateFlags != 0) {
+                TextMeshPro.UpdateVertexData(updateFlags);
+                updateFlags = 0;
+            }
 
-            TextMeshPro.UpdateVertexData(updateFlags);
-            updateFlags = 0;
+            hasRecoverInFrame = false;
         }
 
         /// <summary>
@@ -93,6 +95,7 @@ namespace TMPPlayer {
 
                 VisibleCount = 0; // 因为打字机携程无法判断是否增量更新，所以初始化要放到这里
                 lastInvokeIndex = 0;
+                backUpIndices?.Clear();
 
                 (richTags, text) = ValidateRichTags(text, newline: newline);
                 TextMeshPro.SetText(text);
@@ -105,14 +108,13 @@ namespace TMPPlayer {
             } else {
                 // countBeforeAdditive = textMeshPro.textInfo.characterCount;
                 updateFlags = TMP_VertexDataUpdateFlags.None;
-
                 (richTags, text) = ValidateRichTags(text, TextMeshPro.text.Length, newline);
                 TextMeshPro.SetText(TextMeshPro.text + text);
                 actionTokenSource ??= new CancellationTokenSource();
             }
 
             PrepareActions(isAdditive);
-            ShowText(isAdditive);
+            ShowText(isAdditive, text.Length);
         }
 
         /// <summary>
@@ -146,7 +148,11 @@ namespace TMPPlayer {
                 }
 
                 //TODO 可能需要更多测试
-                while (invokeSingleActions && (VisibleCount < TextMeshPro.textInfo.characterCount && lastInvokeIndex <= TextMeshPro.textInfo.characterInfo[VisibleCount].index) || (VisibleCount == TextMeshPro.textInfo.characterCount && lastInvokeIndex <= TextMeshPro.text.Length)) {
+                while (invokeSingleActions
+                    && VisibleCount < TextMeshPro.textInfo.characterCount
+                    && lastInvokeIndex <= TextMeshPro.textInfo.characterInfo[VisibleCount].index
+                    || VisibleCount == TextMeshPro.textInfo.characterCount
+                    && lastInvokeIndex <= TextMeshPro.text.Length) {
 
                     if (singleActions.TryGetValue(lastInvokeIndex, out var tuples)) {
                         for (int i = 0; i < tuples.Count; i++) {
@@ -158,8 +164,6 @@ namespace TMPPlayer {
                     }
                     lastInvokeIndex++;
                 }
-
-
                 VisibleCount++;
             }
             /*} else VisibleCount = TextMeshPro.textInfo.characterCount;*/
@@ -167,9 +171,10 @@ namespace TMPPlayer {
             IsTyping = false;
             IsHardSkipping = false;
             backUpIndices?.Clear(); // 清除所有需要复原的
+            singleActions.Clear();  // 防止 additive 后执行没有触发的，所以提前干掉
 
-            if (VisibleCount > TextMeshPro.textInfo.characterCount) VisibleCount = TextMeshPro.textInfo.characterCount;
-            if (lastInvokeIndex >= TextMeshPro.text.Length) lastInvokeIndex = TextMeshPro.text.Length;
+            if (VisibleCount > TextMeshPro.textInfo.characterCount) VisibleCount--;
+            // if (lastInvokeIndex >= TextMeshPro.text.Length) lastInvokeIndex = TextMeshPro.text.Length;
         }
 
         /// <summary>
@@ -193,5 +198,5 @@ namespace TMPPlayer {
         }
 
     }
-    
+
 }
