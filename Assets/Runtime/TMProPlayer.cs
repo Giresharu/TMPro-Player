@@ -4,6 +4,8 @@ using System.Threading;
 using TMPro;
 using UnityEngine;
 
+// ReSharper disable BitwiseOperatorOnEnumWithoutFlags
+
 namespace TMPPlayer {
 
     [RequireComponent(typeof(TMP_Text))][Icon("Packages/com.gsr.tmproplayer/Icons/player.png")]
@@ -17,28 +19,29 @@ namespace TMPPlayer {
         // public char[] delayBlackList;
 
 
+        // ReSharper disable UnusedAutoPropertyAccessor.Global
         public int Delay { get; set; }
         public TMP_Text TextMeshPro { get; private set; }
         public TMP_CharacterInfo CurrentChar { get; private set; }
         public TMP_CharacterInfo LastChar { get; private set; }
         public TMP_CharacterInfo NextChar { get; private set; }
         public TMP_MeshInfo[] CachedMeshInfo { get { return cachedMeshInfo; } }
-        // public bool UseCustomCharacterDisplay { get; set; }
 
         public bool IsTyping { get; private set; }
         public int VisibleCount { get; private set; }
-
         public bool IsSkipping { get { return IsSoftSkipping || IsHardSkipping; } }
         public bool IsHardSkipping { get; private set; }
         public bool IsSoftSkipping { get; private set; }
 
         public bool IsSuspending { get; private set; }
+        // ReSharper restore UnusedAutoPropertyAccessor.Global
 
         /// <summary>
         /// 记录本帧要更新渲染的 flag，如果想要 OnPreRenderText 刷新 UI 时恢复到本次修改而非恢复到初始状态，请填写需要记录的 indices
         /// </summary>
         /// <param name="updateFlags">需要更新渲染的 flags</param>
         /// <param name="indices">需要记录的 materialReferenceIndex 及其材质中的 vertexIndex</param>
+        // ReSharper disable once ParameterHidesMember
         public void AddUpdateFlags(TMP_VertexDataUpdateFlags updateFlags, HashSet<(int materialReferenceIndex, int vertexIndex)> indices = null) {
             if (indices is { Count: > 0 }) BackUpMeshInfo(updateFlags, indices);
             this.updateFlags |= updateFlags;
@@ -50,6 +53,7 @@ namespace TMPPlayer {
         /// <param name="updateFlags">需要更新渲染的 flags</param>
         /// <param name="materialReferenceIndex">需要记录的 materialReferenceIndex</param>
         /// <param name="vertexIndex">materialReferenceIndex 所代表的材质中需要记录的 vertexIndex</param>
+        // ReSharper disable once ParameterHidesMember
         public void AddUpdateFlags(TMP_VertexDataUpdateFlags updateFlags, int materialReferenceIndex, int vertexIndex) {
             BackUpMeshInfo(updateFlags, null, materialReferenceIndex, vertexIndex);
             this.updateFlags |= updateFlags;
@@ -59,6 +63,7 @@ namespace TMPPlayer {
         /// 移除本帧要更新的 flag
         /// </summary>
         /// <param name="updateFlags">需要移除更新渲染的 flags</param>
+        // ReSharper disable once ParameterHidesMember
         public void RemoveUpdateFlags(TMP_VertexDataUpdateFlags updateFlags) {
             this.updateFlags &= ~updateFlags;
         }
@@ -68,18 +73,10 @@ namespace TMPPlayer {
         /// </summary>
         /// <param name="updateFlags">需要检查的 flags</param>
         /// <returns></returns>
+        // ReSharper disable once ParameterHidesMember
         public bool CheckUpdateFlags(TMP_VertexDataUpdateFlags updateFlags) {
             // return (this.updateFlags & updateFlags) != 0;
             return this.updateFlags.HasFlag(updateFlags);
-        }
-
-        public void LateUpdate() {
-            if (updateFlags != 0) {
-                TextMeshPro.UpdateVertexData(updateFlags);
-                updateFlags = 0;
-            }
-
-            hasRecoverInFrame = false;
         }
 
         /// <summary>
@@ -92,9 +89,8 @@ namespace TMPPlayer {
             if (TextMeshPro == null) TextMeshPro = GetComponent<TextMeshProUGUI>();
 
             if (!isAdditive) {
-
-                VisibleCount = 0; // 因为打字机携程无法判断是否增量更新，所以初始化要放到这里
-                lastInvokeIndex = 0;
+                VisibleCount = 1; // 因为打字机携程无法判断是否增量更新，所以初始化要放到这里
+                invokeTagIndex = 0;
                 backUpIndices?.Clear();
 
                 (richTags, text) = ValidateRichTags(text, newline: newline);
@@ -106,7 +102,10 @@ namespace TMPPlayer {
 
                 actionTokenSource = new CancellationTokenSource();
             } else {
-                // countBeforeAdditive = textMeshPro.textInfo.characterCount;
+                if (!IsTyping) {
+                    VisibleCount = TextMeshPro.textInfo.characterCount + 1;
+                    invokeTagIndex = TextMeshPro.text.Length;
+                }
                 updateFlags = TMP_VertexDataUpdateFlags.None;
                 (richTags, text) = ValidateRichTags(text, TextMeshPro.text.Length, newline);
                 TextMeshPro.SetText(TextMeshPro.text + text);
@@ -114,7 +113,7 @@ namespace TMPPlayer {
             }
 
             PrepareActions(isAdditive);
-            ShowText(isAdditive, text.Length);
+            ShowText(isAdditive);
         }
 
         /// <summary>
@@ -137,24 +136,13 @@ namespace TMPPlayer {
             typeWriterTokenSource = new CancellationTokenSource();
 
             IsHardSkipping = true;
-            /*bool needDisplay = !CheckUpdateFlags(TMP_VertexDataUpdateFlags.Colors32);
-            if (needDisplay) {*/
-            while (VisibleCount <= TextMeshPro.textInfo.characterCount) {
-                SetCharacterLog();
 
-                if (VisibleCount > 0 && TextMeshPro.textInfo.characterInfo[VisibleCount - 1].isVisible) {
-                    RemoveUpdateFlags(TMP_VertexDataUpdateFlags.Colors32);
-                    DisplayCharacter();
-                }
+            while (VisibleCount <= TextMeshPro.textInfo.characterCount + 1) {
+                if (VisibleCount <= TextMeshPro.textInfo.characterCount)
+                    SetCharacterLog();
 
-                //TODO 可能需要更多测试
-                while (invokeSingleActions
-                    && VisibleCount < TextMeshPro.textInfo.characterCount
-                    && lastInvokeIndex <= TextMeshPro.textInfo.characterInfo[VisibleCount].index
-                    || VisibleCount == TextMeshPro.textInfo.characterCount
-                    && lastInvokeIndex <= TextMeshPro.text.Length) {
-
-                    if (singleActions.TryGetValue(lastInvokeIndex, out var tuples)) {
+                while (invokeSingleActions && CheckInvokeTagIndex()) {
+                    if (singleActions.TryGetValue(invokeTagIndex, out var tuples)) {
                         for (int i = 0; i < tuples.Count; i++) {
 
                             IEnumerator coroutine = tuples[i].actionInfo.Invoke(this, actionTokenSource.Token, null, tuples[i].value);
@@ -162,19 +150,24 @@ namespace TMPPlayer {
 
                         }
                     }
-                    lastInvokeIndex++;
+                    invokeTagIndex++;
                 }
+                
+                if (VisibleCount > TextMeshPro.textInfo.characterCount) break;
+
+                RemoveUpdateFlags(TMP_VertexDataUpdateFlags.Colors32);
+                DisplayCharacter();
+                
                 VisibleCount++;
             }
-            /*} else VisibleCount = TextMeshPro.textInfo.characterCount;*/
 
             IsTyping = false;
             IsHardSkipping = false;
             backUpIndices?.Clear(); // 清除所有需要复原的
             singleActions.Clear();  // 防止 additive 后执行没有触发的，所以提前干掉
 
-            if (VisibleCount > TextMeshPro.textInfo.characterCount) VisibleCount--;
-            // if (lastInvokeIndex >= TextMeshPro.text.Length) lastInvokeIndex = TextMeshPro.text.Length;
+            VisibleCount--;
+            invokeTagIndex = TextMeshPro.text.Length;
         }
 
         /// <summary>
