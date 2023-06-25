@@ -140,7 +140,7 @@ namespace TMPPlayer {
             RefreshCachedMeshInfo(true);
             TMP_MeshInfo[] meshInfo = textInfo.meshInfo;
 
-            HideMeshInfo(VisibleCount - 1);
+            HideMeshInfo(VisibleCount);
             if (backUpIndices == null) return;
 
             if (backUpIndices.TryGetValue(TMP_VertexDataUpdateFlags.Colors32, out HashSet<(int, int)> colorIndices)) {
@@ -184,6 +184,7 @@ namespace TMPPlayer {
         void HideMeshInfo(int indexBegin = 0) {
             TMP_MeshInfo[] meshInfo = TextMeshPro.textInfo.meshInfo;
             int index = indexBegin;
+            if (!IsTyping) index--;
 
             while (index < TextMeshPro.textInfo.characterCount) {
                 if (index >= 0) {
@@ -251,7 +252,7 @@ namespace TMPPlayer {
         // bool isSoftSkipping;
         IEnumerator SoftSkipCoroutine(bool oneShot = false) {
             IsSoftSkipping = true;
-            while (isFuncWaiting || !isActiveAndEnabled) {
+            while (IsPausing || !isActiveAndEnabled) {
                 if (softSkipOn) yield return null;
                 else {
                     IsSoftSkipping = false;
@@ -298,7 +299,7 @@ namespace TMPPlayer {
             // 软跳最终会回归打字机，所以后事都在打字机处理
             IsSoftSkipping = false;
         }
-
+        
         void ShowText(bool isAdditive = false) {
             // 初始化
             TextMeshPro.ForceMeshUpdate();
@@ -361,8 +362,7 @@ namespace TMPPlayer {
             CurrentChar = VisibleCount > 0 ? TextMeshPro.textInfo.characterInfo[VisibleCount - 1] : new TMP_CharacterInfo { character = '\0' };
             NextChar = VisibleCount < TextMeshPro.textInfo.characterCount ? TextMeshPro.textInfo.characterInfo[VisibleCount] : new TMP_CharacterInfo { character = '\0' };
         }
-
-        bool isFuncWaiting;
+        
         IEnumerator TypeWriter(CancellationToken token) {
             IsTyping = true;
             while (VisibleCount <= TextMeshPro.textInfo.characterCount + 1 && !token.IsCancellationRequested) {
@@ -382,9 +382,9 @@ namespace TMPPlayer {
                             //防止返回null的时候被yield return 延迟一帧
                             IEnumerator coroutine = tuples[i].actionInfo.Invoke(this, actionTokenSource.Token, null, tuples[i].value);
                             if (coroutine != null) {
-                                isFuncWaiting = true;
+                                IsPausing = true;
                                 yield return coroutine;
-                                isFuncWaiting = false;
+                                IsPausing = false;
                                 // 防止暂停的过程中被取消，导致后续还被执行，所以再检查一次
                                 if (token.IsCancellationRequested) yield break;
                             }

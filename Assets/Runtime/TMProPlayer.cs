@@ -33,7 +33,9 @@ namespace TMPPlayer {
         public bool IsHardSkipping { get; private set; }
         public bool IsSoftSkipping { get; private set; }
 
-        public bool IsSuspending { get; private set; }
+        public bool IsSuspending { get; private set; } //是否被 Suspend 暂停
+        public bool IsPausing { get; private set; } //是否被 func 委托的标签暂停
+
         // ReSharper restore UnusedAutoPropertyAccessor.Global
 
         /// <summary>

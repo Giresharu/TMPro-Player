@@ -27,7 +27,6 @@ public class TMProPlayerRichTagExample : TMPPlayerRichTagManager {
                 yield return null;
                 continue;
             }
-
             while (lastVisibleCount < tmpp.VisibleCount) {
                 lastVisibleCount++;
                 if (isAppearInRange.Contains(lastVisibleCount - 1)) {
@@ -46,7 +45,8 @@ public class TMProPlayerRichTagExample : TMPPlayerRichTagManager {
 
             while (!token.IsCancellationRequested) {
 
-                if (!tmpp.isActiveAndEnabled || !tmpp.TextMeshPro.isActiveAndEnabled) {
+                // 要防止字在索引 0 的标签上就显示出来 所以添加了 IsPausing 的检测
+                if (!tmpp.isActiveAndEnabled || !tmpp.TextMeshPro.isActiveAndEnabled || tmpp.IsPausing) {
                     yield return null;
                     pausedTime += Time.deltaTime;
                     continue;
