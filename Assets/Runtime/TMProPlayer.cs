@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace TMPPlayer {
 
-    [RequireComponent(typeof(TMP_Text))][Icon("Packages/com.gsr.tmproplayer/Icons/player.png")]
+    [RequireComponent(typeof(TMP_Text))]
     public class TMProPlayer : MonoBehaviour {
 
         public bool isTypeWriter = true;
