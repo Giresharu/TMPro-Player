@@ -194,7 +194,8 @@ namespace TMPPlayer {
         /// </summary>
         /// <param name="invokeSingleActions"> 是否需要执行跳过的文字中的单个标签 </param>
         public void Skip(bool invokeSingleActions = true) {
-            if (typeWriterTokenSource is not { IsCancellationRequested: false }) return;
+            if (typeWriterTokenSource == null || typeWriterTokenSource.IsCancellationRequested) return;
+            // if (typeWriterTokenSource is not { IsCancellationRequested: false }) return;
 
             typeWriterTokenSource.Cancel();
             typeWriterTokenSource.Dispose();
@@ -346,7 +347,7 @@ namespace TMPPlayer {
                 lastInvokeIndex = TextMeshPro.text.Length - 1;
                 // AddUpdateFlags(TMP_VertexDataUpdateFlags.Colors32);
             }
-            
+
             // 触发成对 Action
             foreach (var tuple in pairedActions.Keys)
                 tuple.actionInfo.Invoke(this, actionTokenSource.Token, pairedActions[tuple], tuple.value);
@@ -497,7 +498,9 @@ namespace TMPPlayer {
                     Stack<int> temp = new Stack<int>();
 
                     while (true) {
-                        if (!tagIndices.TryPop(out int i)) break;
+                        if (tagIndices.Count <= 0) break;
+                        int i = tagIndices.Pop();
+                        // if (!tagIndices.TryPop(out int i)) break;
 
                         RichTagInfo richTagInfo = textTags[i];
 
