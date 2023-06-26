@@ -11,6 +11,7 @@ namespace TMPPlayer {
     public partial class TMProPlayer {
         //TODO 让TagManager的实现变得更优雅
         //TODO 在执行的时候要判断参数类型是否正确，否则输出bug到面板
+        //TODO 测试跳过与标签有没有问题
         readonly Dictionary<int, List<(ActionInfo actionInfo, string[] value)>> singleActions = new Dictionary<int, List<(ActionInfo actionInfo, string[] value)>>();
         readonly Dictionary<(ActionInfo actionInfo, string[] value, int nestLayer), List<(int start, int end)>> pairedActions = new Dictionary<(ActionInfo, string[], int), List<(int, int)>>(new ActionInfoComparer());
 

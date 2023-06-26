@@ -1,8 +1,30 @@
-![LOGO](./logo.png)
-===
-[![Releases](https://img.shields.io/github/v/release/Giresharu/TMPro-Player?logo=github)](https://github.com/Giresharu/TMPro-Player/releases/latest) [![openupm](https://img.shields.io/npm/v/com.gsr.tmproplayer?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.gsr.tmproplayer/) [![LICENSE](https://img.shields.io/github/license/Giresharu/TMPro-Player)](./LICENSE.md) ![Unity](https://img.shields.io/badge/Unity%20Supported-2020.1%2B-ff69b4.svg?logo=unity) [![bilibili](https://img.shields.io/badge/bilibili-Overview_Video(in_Chinese)-FE7398?logo=bilibili&logoColor=white)](https://www.bilibili.com/video/BV1mV4y117jG/)
-
-[查看中文版](./README.md)
+<div style="text-align: center;">
+<img src="./logo.png">
+</div>
+<div style="text-align: center;">
+<a href="https://github.com/Giresharu/TMPro-Player/releases/latest">
+<img src="https://img.shields.io/github/v/release/Giresharu/TMPro-Player?logo=github" />
+</a>
+<a href="https://openupm.com/packages/com.gsr.tmproplayer">
+<img src="https://custom-icon-badges.demolab.com/npm/v/com.gsr.tmproplayer?label=openupm&registry_uri=https://package.openupm.com&logo=openupm&logoColor=white&color=3068e5" />
+</a>
+<a href="./LICENSE.md">
+<img src="https://custom-icon-badges.demolab.com/github/license/Giresharu/TMPro-Player?logo=law" />
+</a>
+<a>
+<img src="https://img.shields.io/badge/Unity%20Supported-2020.1%2B-ff69b4.svg?logo=unity" />
+</a>
+<a href="https://www.bilibili.com/video/BV1mV4y117jG/">
+<img src="https://img.shields.io/badge/bilibili-Overview_Video(CH)-FE7398?logo=bilibili&logoColor=white" />
+</a>
+<a href="https://afdian.net/a/giresharu">
+<img src="https://custom-icon-badges.demolab.com/badge/afdian-Sponsor-946CE6?cacheSeconds=https%3A%2F%2Fafdian.net%2Fa%2Fgiresharu&logo=heart" />
+</a>
+<a href="./README.md">
+<img src="https://custom-icon-badges.demolab.com/badge/文档-查看中文版本-5345c5?logo=translate&logoColor=white" />
+</a>
+</div>
+<br><br>
 
 TMPro Player is a rich text tag management plugin based on TextMeshPro, enabling custom rich text tag functionality.
 

@@ -11,7 +11,6 @@ namespace TMPPlayer {
     public class TMPPlayerRichTagManager : MonoBehaviour {
 
         static TMPPlayerRichTagManager instance;
-
         readonly Dictionary<string, ActionInfo> actionInfos = new Dictionary<string, ActionInfo>();
 
         void Awake() {
