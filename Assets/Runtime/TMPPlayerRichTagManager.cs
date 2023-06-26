@@ -7,8 +7,7 @@ using TMPro;
 using UnityEngine;
 
 namespace TMPPlayer {
-
-    [Icon("Packages/com.gsr.tmproplayer/Icons/manager.png")]
+    
     public class TMPPlayerRichTagManager : MonoBehaviour {
 
         static TMPPlayerRichTagManager instance;
