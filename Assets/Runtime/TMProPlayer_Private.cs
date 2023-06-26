@@ -465,7 +465,9 @@ namespace TMPPlayer {
                     Stack<int> temp = new Stack<int>();
 
                     while (true) {
-                        if (!tagIndices.TryPop(out int i)) break;
+                        if (tagIndices.Count <= 0) break;
+                        int i = tagIndices.Pop();
+                        // if (!tagIndices.TryPop(out int i)) break;
 
                         RichTagInfo richTagInfo = textTags[i];
 

@@ -2,6 +2,12 @@ TMPro-Player
 ===
 [View in English](./CHANGELOG-en.md)
 
+[1.1.4](https://github.com/Giresharu/TMPro-Player/releases/1.1.4)
+---
+
+### 修复
+* 修复了在 unity 2020.x 版本中的各种不兼容问题
+
 [1.1.3](https://github.com/Giresharu/TMPro-Player/releases/1.1.3)
 ---
 

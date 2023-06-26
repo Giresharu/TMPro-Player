@@ -1,7 +1,7 @@
 {
   "name": "com.gsr.tmproplayer",
   "displayName": "TMPro Player",
-  "version": "1.1.3",
+  "version": "1.1.4",
   "unity": "2020.1",
   "description": "基于 TextMeshPro 的自定义富文本标签插件\nCustom Rich Text Tag Plugin Based on TextMeshPro",
   "keywords": [

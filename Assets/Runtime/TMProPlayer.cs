@@ -7,8 +7,8 @@ using UnityEngine;
 // ReSharper disable BitwiseOperatorOnEnumWithoutFlags
 
 namespace TMPPlayer {
-
-    [RequireComponent(typeof(TMP_Text))][Icon("Packages/com.gsr.tmproplayer/Icons/player.png")]
+    
+    [RequireComponent(typeof(TMP_Text))]
     public partial class TMProPlayer : MonoBehaviour {
 
         public bool isTypeWriter = true;
@@ -131,7 +131,8 @@ namespace TMPPlayer {
         /// </summary>
         /// <param name="invokeSingleActions"> 是否需要执行跳过的文字中的单个标签 </param>
         public void Skip(bool invokeSingleActions = true) {
-            if (typeWriterTokenSource is not { IsCancellationRequested: false }) return;
+            if (typeWriterTokenSource == null || typeWriterTokenSource.IsCancellationRequested) return;
+            // if (typeWriterTokenSource is not { IsCancellationRequested: false }) return;
 
             typeWriterTokenSource.Cancel();
             typeWriterTokenSource.Dispose();
