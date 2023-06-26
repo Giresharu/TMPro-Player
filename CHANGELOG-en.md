@@ -2,16 +2,22 @@ TMPro-Player
 ===
 [查看中文版本](./CHANGELOG.md)
 
+[1.1.4](https://github.com/Giresharu/TMPro-Player/releases/1.1.4)
+---
+
+### Fixed
+* Fixed various compatibility issues in Unity 2020.x version.
+
 [1.1.3](https://github.com/Giresharu/TMPro-Player/releases/1.1.3)
 ---
 
-### 修复
+### Fixed
 * Fixed the issue of incorrectly merge-optimizing of nested or interleaved paired tags.
 
 [1.1.2](https://github.com/Giresharu/TMPro-Player/releases/1.1.2)
 ---
 
-### 修复
+### Fixed
 * I made a silly mistake, accidentally typed an extra character. It's fixed now.
 
 [1.1.1](https://github.com/Giresharu/TMPro-Player/releases/1.1.1)
