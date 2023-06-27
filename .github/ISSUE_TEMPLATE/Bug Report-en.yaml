@@ -1,0 +1,45 @@
+name: Bug Report in English
+description: File a bug report
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: checkboxes
+    id: verify
+    attributes:
+      label: Please confirm if it is necessary to file a bug
+      options:
+        - label: I have updated this package to the latest version of this major release
+          required: true
+        - label: I have checked the documentation and confirmed it is not a feature
+          required: true
+        - label: I have checked the issues and changelog and there is no existing bug report with the same issue
+          required: true
+    # - type: dropdown
+    #   id: version
+    #   attributes:
+    #     label: The TMProPlayer version I am using is
+    #     options:
+    #       - 2.x.x
+    #       - 1.x.x
+    # validations:
+    #   required: true
+  - type: input
+    id: unity
+    attributes:
+      label: The Unity version I am using is
+      placeholder: "2020.1.2"
+    validations:
+      required: true
+  - type: input
+    id: tmpro
+    attributes:
+      label: The TextMeshPro version I am using is
+      placeholder: "3.0.6"
+    validations:
+      required: true
+  - type: textarea
+    id: detail
+    attributes:
+      label: Please provide a detailed description of the bug symptoms and how you encountered this bug
+    validations:
+      required: true

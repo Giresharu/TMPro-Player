@@ -1,0 +1,45 @@
+name: 提交 Bug
+description: File a bug report
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: checkboxes
+    id: verify
+    attributes:
+      label: 请先确认是否有提 Bug 的必要
+      options:
+        - label: 已将插件更新到此主版本的最新版
+          required: true
+        - label: 已在文档中确认过，并非是特性
+          required: true
+        - label: 已确认在 Issue 以及更新日志中没有相同内容的 Bug Report
+          required: true
+    # - type: dropdown
+    #   id: version
+    #   attributes:
+    #     label: 我所使用的 TMProPlayer 主版本是
+    #     options:
+    #       - 2.x.x
+    #       - 1.x.x
+    # validations:
+    #   required: true
+  - type: input
+    id: unity
+    attributes:
+      label: 我所使用的 Unity 版本是
+      placeholder: "2020.1.2"
+    validations:
+      required: true
+  - type: input
+    id: tmpro
+    attributes:
+      label: 我所使用的 TextMeshPro 版本是
+      placeholder: "3.0.6"
+    validations:
+      required: true
+  - type: textarea
+    id: detail
+    attributes:
+      label: 请详细描述 Bug 的症状，以及你是如何引起这个 Bug 的
+    validations:
+      required: true

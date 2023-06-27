@@ -1,0 +1,45 @@
+name: 寻求帮助
+description: File a question report in Chinese
+title: "[Help]: "
+labels: ["question", "help wanted"]
+body:
+  - type: checkboxes
+    id: verify
+    attributes:
+      label: 请先确认是否有提问的必要
+      options:
+        - label: 已将插件更新到此主版本的最新版
+          required: true
+        - label: 已翻阅过文档，没有找到相关内容
+          required: true
+        - label: 已确认在 Issue 没有相同的提问
+          required: true
+  # - type: dropdown
+  #   id: version
+  #   attributes:
+  #     label: 我所使用的 TMProPlayer 主版本是
+  #     options:
+  #       - 2.x.x
+  #       - 1.x.x
+  #   validations:
+  #     required: true
+  - type: input
+    id: unity
+    attributes:
+      label: 我所使用的 Unity 版本是
+      placeholder: "2020.1.2"
+    validations:
+      required: true
+  - type: input
+    id: tmpro
+    attributes:
+      label: 我所使用的 TextMeshPro 版本是
+      placeholder: "3.0.6"
+    validations:
+      required: true
+  - type: textarea
+    id: detail
+    attributes:
+      label: 请详细描述你所遇到的问题
+    validations:
+      required: true

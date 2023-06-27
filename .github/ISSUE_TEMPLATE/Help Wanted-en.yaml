@@ -1,0 +1,45 @@
+name: Help Wanted in English
+description: File a question report in Chinese
+title: "[Help]: "
+labels: ["question", "help wanted"]
+body:
+  - type: checkboxes
+    id: verify
+    attributes:
+      label: Please confirm if it is necessary to submit a help wanted.
+      options:
+        - label: I have updated this package to the latest version of this major release
+          required: true
+        - label: I have checked the documentation and did not find any relevant information
+          required: true
+        - label: I have confirmed that there are no similar questions in the issues
+          required: true
+  # - type: dropdown
+  #   id: version
+  #   attributes:
+  #     label: The TMProPlayer version I am using is
+  #     options:
+  #       - 2.x.x
+  #       - 1.x.x
+  # validations:
+  #   required: true
+  - type: input
+    id: unity
+    attributes:
+      label: The Unity version I am using is
+      placeholder: "2020.1.2"
+    validations:
+      required: true
+  - type: input
+    id: tmpro
+    attributes:
+      label: The TextMeshPro version I am using is
+      placeholder: "3.0.6"
+    validations:
+      required: true
+  - type: textarea
+    id: detail
+    attributes:
+      label: Please provide a detailed description of the problem you encountered
+    validations:
+      required: true
