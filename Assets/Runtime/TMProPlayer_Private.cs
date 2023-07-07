@@ -12,6 +12,7 @@ namespace TMPPlayer {
         //TODO 让TagManager的实现变得更优雅
         //TODO 在执行的时候要判断参数类型是否正确，否则输出bug到面板
         //TODO 测试跳过与标签有没有问题
+        //BUG Appear还是有问题，干脆等新版
         readonly Dictionary<int, List<(ActionInfo actionInfo, string[] value)>> singleActions = new Dictionary<int, List<(ActionInfo actionInfo, string[] value)>>();
         readonly Dictionary<(ActionInfo actionInfo, string[] value, int nestLayer), List<(int start, int end)>> pairedActions = new Dictionary<(ActionInfo, string[], int), List<(int, int)>>(new ActionInfoComparer());
 
@@ -185,7 +186,9 @@ namespace TMPPlayer {
         void HideMeshInfo(int indexBegin = 0) {
             TMP_MeshInfo[] meshInfo = TextMeshPro.textInfo.meshInfo;
             int index = indexBegin;
-            if (!IsTyping) index--;
+            // 防止暂停的过程中触发网格刷新，导致已经++的 VisibleCount 被刷出来
+            //TODO !IsTyping 是干嘛的来着？忘了有机会查一下
+            if (!IsTyping || IsSuspending || IsPausing) index--;
 
             while (index < TextMeshPro.textInfo.characterCount) {
                 if (index >= 0) {
@@ -212,6 +215,7 @@ namespace TMPPlayer {
 
         void RefreshCachedMeshInfo(bool isRecover = false) {
             int index = 0;
+            //TODO 好像没机会 !isRecover 啊？只要 cachedMeshInfo的长度变了 就必须要从头复制（要不用Array.Resize）另外，之前为什么希望 isRecover 的时候从 0 呢？大概是因为因为有很多会改变排版的东西吧。
             if (!isRecover) index = (VisibleCount - 1) * 4;
 
             TMP_MeshInfo[] meshInfo = TextMeshPro.textInfo.meshInfo;
@@ -221,7 +225,7 @@ namespace TMPPlayer {
 
             for (int i = 0; i < meshInfo.Length; i++) {
                 int length = meshInfo[i].vertices.Length;
-
+                //TODO 想想能不能把明显没有字的长度排除了 不要去复制
                 if (cachedMeshInfo[i].vertices == null || cachedMeshInfo[i].vertices.Length < length) cachedMeshInfo[i].vertices = new Vector3[length];
                 if (cachedMeshInfo[i].uvs0 == null || cachedMeshInfo[i].uvs0.Length < length) cachedMeshInfo[i].uvs0 = new Vector2[length];
                 if (cachedMeshInfo[i].uvs2 == null || cachedMeshInfo[i].uvs2.Length < length) cachedMeshInfo[i].uvs2 = new Vector2[length];
