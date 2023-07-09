@@ -35,8 +35,6 @@ namespace TMPPlayer {
             //TODO （低优先度） 想办法改成用 TMPro_EventManager 的方式来区分【修改文本】【修改显示设置】以及【修改TMPro的激活状态】，来回调不同的 RecoverMeshInfo 以避免 cached 重复的刷新。但是 TMPro 的文档写了跟他妈没写一样，最好开一个新项目专门测试一下每个的作用
         }
 
-
-
         void LateUpdate() {
             if (updateFlags != 0) {
                 TextMeshPro.UpdateVertexData(updateFlags);
@@ -141,7 +139,7 @@ namespace TMPPlayer {
 
         // 根据备份的索引去还原需要复原的网格
         // 当网格被改变时。如添加文字、修改 TextmeshPro 显示模式，或是从隐藏中显示 UI 都会触发
-        // 有办法区分添加文字以及改变显示模式的情况吗》这样就不用重复获取 cache 了
+        // 有办法区分添加文字以及改变显示模式的情况吗？这样就不用重复获取 cache 了
         void RecoverMeshInfo(TMP_TextInfo textInfo) {
 
             RefreshCachedMeshInfo();
