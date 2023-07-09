@@ -91,9 +91,12 @@ namespace TMPPlayer {
             if (TextMeshPro == null) TextMeshPro = GetComponent<TextMeshProUGUI>();
 
             if (!isAdditive) {
-                VisibleCount = 1; // 因为打字机携程无法判断是否增量更新，所以初始化要放到这里
+                /*IsTyping = false;
+                VisibleCount = 0;
                 invokeTagIndex = 0;
                 backUpIndices?.Clear();
+                singleActions.Clear(); */
+                RestoreProperties();
 
                 (richTags, text) = ValidateRichTags(text, newline: newline);
                 TextMeshPro.SetText(text);
@@ -104,17 +107,17 @@ namespace TMPPlayer {
 
                 actionTokenSource = new CancellationTokenSource();
             } else {
-                if (!IsTyping) {
-                    VisibleCount = TextMeshPro.textInfo.characterCount + 1;
-                    invokeTagIndex = TextMeshPro.text.Length;
-                }
+                // if (!IsTyping) {
+                //     VisibleCount = TextMeshPro.textInfo.characterCount;
+                //     invokeTagIndex = TextMeshPro.text.Length;
+                // }
                 updateFlags = TMP_VertexDataUpdateFlags.None;
                 (richTags, text) = ValidateRichTags(text, TextMeshPro.text.Length, newline);
                 TextMeshPro.SetText(TextMeshPro.text + text);
                 actionTokenSource ??= new CancellationTokenSource();
             }
 
-            PrepareActions(isAdditive);
+            PrepareActions();
             ShowText(isAdditive);
         }
 
@@ -164,13 +167,14 @@ namespace TMPPlayer {
                 VisibleCount++;
             }
 
-            IsTyping = false;
             IsHardSkipping = false;
+            /*IsTyping = false;
             backUpIndices?.Clear(); // 清除所有需要复原的
             singleActions.Clear();  // 防止 additive 后执行没有触发的，所以提前干掉
 
             VisibleCount--;
-            invokeTagIndex = TextMeshPro.text.Length;
+            invokeTagIndex = TextMeshPro.text.Length;*/
+            RestoreProperties(false);
         }
 
         /// <summary>

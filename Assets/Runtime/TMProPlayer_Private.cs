@@ -32,7 +32,10 @@ namespace TMPPlayer {
             }
             // 在 UI 被各种因素刷新的时候恢复已经改变的网格信息
             TextMeshPro.OnPreRenderText += RecoverMeshInfo;
+            //TODO （低优先度） 想办法改成用 TMPro_EventManager 的方式来区分【修改文本】【修改显示设置】以及【修改TMPro的激活状态】，来回调不同的 RecoverMeshInfo 以避免 cached 重复的刷新。但是 TMPro 的文档写了跟他妈没写一样，最好开一个新项目专门测试一下每个的作用
         }
+
+
 
         void LateUpdate() {
             if (updateFlags != 0) {
@@ -137,9 +140,11 @@ namespace TMPPlayer {
         }
 
         // 根据备份的索引去还原需要复原的网格
+        // 当网格被改变时。如添加文字、修改 TextmeshPro 显示模式，或是从隐藏中显示 UI 都会触发
+        // 有办法区分添加文字以及改变显示模式的情况吗》这样就不用重复获取 cache 了
         void RecoverMeshInfo(TMP_TextInfo textInfo) {
 
-            RefreshCachedMeshInfo(true);
+            RefreshCachedMeshInfo();
             TMP_MeshInfo[] meshInfo = textInfo.meshInfo;
 
             HideMeshInfo(VisibleCount);
@@ -186,9 +191,11 @@ namespace TMPPlayer {
         void HideMeshInfo(int indexBegin = 0) {
             TMP_MeshInfo[] meshInfo = TextMeshPro.textInfo.meshInfo;
             int index = indexBegin;
-            // 防止暂停的过程中触发网格刷新，导致已经++的 VisibleCount 被刷出来
-            //TODO !IsTyping 是干嘛的来着？忘了有机会查一下
-            if (!IsTyping || IsSuspending || IsPausing) index--;
+
+            // !IsTyping 因为播放时如果不在打字机效果，visibleCount会从 1（或者 Additive 的 1 ）开始。但是 HideMeshInfo 又在触发标签之前
+            // TODO 总觉得会变成屎山，找机会重构
+            // if (!IsTyping)
+            //     index--;
 
             while (index < TextMeshPro.textInfo.characterCount) {
                 if (index >= 0) {
@@ -213,10 +220,10 @@ namespace TMPPlayer {
             }
         }
 
-        void RefreshCachedMeshInfo(bool isRecover = false) {
+        void RefreshCachedMeshInfo() {
             int index = 0;
-            //TODO 好像没机会 !isRecover 啊？只要 cachedMeshInfo的长度变了 就必须要从头复制（要不用Array.Resize）另外，之前为什么希望 isRecover 的时候从 0 呢？大概是因为因为有很多会改变排版的东西吧。
-            if (!isRecover) index = (VisibleCount - 1) * 4;
+            // 好像没机会 !isRecover 啊？只要 cachedMeshInfo的长度变了 就必须要从头复制（要不用Array.Resize）另外，之前为什么希望 isRecover 的时候从 0 呢？大概是因为因为有很多会改变排版的东西吧。
+            // if (!isRecover) index = (VisibleCount - 1) * 4;
 
             TMP_MeshInfo[] meshInfo = TextMeshPro.textInfo.meshInfo;
             cachedMeshInfo ??= new TMP_MeshInfo[meshInfo.Length];
@@ -225,7 +232,7 @@ namespace TMPPlayer {
 
             for (int i = 0; i < meshInfo.Length; i++) {
                 int length = meshInfo[i].vertices.Length;
-                //TODO 想想能不能把明显没有字的长度排除了 不要去复制
+                //TODO 想想能不能把明显没有字的长度排 除了 不要去复制
                 if (cachedMeshInfo[i].vertices == null || cachedMeshInfo[i].vertices.Length < length) cachedMeshInfo[i].vertices = new Vector3[length];
                 if (cachedMeshInfo[i].uvs0 == null || cachedMeshInfo[i].uvs0.Length < length) cachedMeshInfo[i].uvs0 = new Vector2[length];
                 if (cachedMeshInfo[i].uvs2 == null || cachedMeshInfo[i].uvs2.Length < length) cachedMeshInfo[i].uvs2 = new Vector2[length];
@@ -304,7 +311,7 @@ namespace TMPPlayer {
             // 软跳最终会回归打字机，所以后事都在打字机处理
             IsSoftSkipping = false;
         }
-        
+
         void ShowText(bool isAdditive = false) {
             // 初始化
             TextMeshPro.ForceMeshUpdate();
@@ -331,9 +338,10 @@ namespace TMPPlayer {
                     DisplayCharacter();
                     VisibleCount++;
                 }
-                singleActions.Clear();
+                RestoreProperties(false);
+                /*singleActions.Clear();
                 VisibleCount--;
-                invokeTagIndex = TextMeshPro.text.Length;
+                invokeTagIndex = TextMeshPro.text.Length;*/
             }
 
             // 触发成对 Action
@@ -367,16 +375,26 @@ namespace TMPPlayer {
             CurrentChar = VisibleCount > 0 ? TextMeshPro.textInfo.characterInfo[VisibleCount - 1] : new TMP_CharacterInfo { character = '\0' };
             NextChar = VisibleCount < TextMeshPro.textInfo.characterCount ? TextMeshPro.textInfo.characterInfo[VisibleCount] : new TMP_CharacterInfo { character = '\0' };
         }
-        
+
+        int lastSentenceWordCount;
         IEnumerator TypeWriter(CancellationToken token) {
             IsTyping = true;
+
+            // 让进入打字机效果不要重复处理上一句的最后一个字
+            if (lastSentenceWordCount == VisibleCount) VisibleCount++;
+            lastSentenceWordCount = TextMeshPro.textInfo.characterCount;
+
             while (VisibleCount <= TextMeshPro.textInfo.characterCount + 1 && !token.IsCancellationRequested) {
 
                 if (!isActiveAndEnabled || !TextMeshPro.isActiveAndEnabled || IsSuspending) {
+                    // 这时候暂停，还未把实际的文字显示出来，所以要减去 1
+                    VisibleCount--;
                     yield return null;
+                    VisibleCount++;
                     continue;
                 }
 
+                //TODO (高优先度) 验证暂停或者挂起的时候是否会把暂未显示的当作 Current 
                 if (VisibleCount <= TextMeshPro.textInfo.characterCount)
                     SetCharacterLog();
 
@@ -388,8 +406,11 @@ namespace TMPPlayer {
                             IEnumerator coroutine = tuples[i].actionInfo.Invoke(this, actionTokenSource.Token, null, tuples[i].value);
                             if (coroutine != null) {
                                 IsPausing = true;
+                                // 这时候暂停，还未把实际的文字显示出来，所以要减去 1
+                                VisibleCount--;
                                 yield return coroutine;
                                 IsPausing = false;
+                                VisibleCount++;
                                 // 防止暂停的过程中被取消，导致后续还被执行，所以再检查一次
                                 if (token.IsCancellationRequested) yield break;
                             }
@@ -420,13 +441,25 @@ namespace TMPPlayer {
             }
 
             // 由于取消打字机效果有滞后性，会晚于新的打字机效果，所以必须判断是否是自然结束再来处理后事，否则会覆盖新打字机效果的运行
+            // 另外，只有跳过和覆盖文字会取消打字机效果。其中跳过有后面的这些处理。而覆盖文字之前也有初始化到 0 
             if (token.IsCancellationRequested) yield break;
 
-            IsTyping = false;
+            RestoreProperties(false);
+
+            /*IsTyping = false;
             backUpIndices?.Clear(); // 清除所有需要复原的
             singleActions.Clear();  // 防止 additive 后执行没有触发的，所以提前干掉
             VisibleCount--;
-            invokeTagIndex = TextMeshPro.text.Length;
+            invokeTagIndex = TextMeshPro.text.Length;*/
+        }
+
+        void RestoreProperties(bool toZero = true) {
+            IsTyping = false;
+            backUpIndices?.Clear();
+            singleActions.Clear();
+            VisibleCount = toZero ? 0 : TextMeshPro.textInfo.characterCount;
+            invokeTagIndex = toZero ? 0 : TextMeshPro.text.Length;
+            if (toZero) backUpIndices?.Clear();
         }
 
         bool CheckInvokeTagIndex() {
@@ -519,12 +552,9 @@ namespace TMPPlayer {
             return (new Queue<RichTagInfo>(textTags), text);
         }
 
-        void PrepareActions(bool additive = false) {
+        void PrepareActions() {
             // 清除成对的标签的 Action ，是因为他们是在播放文字前触发的，会重复触发
             pairedActions.Clear();
-            //如果不是增量更新，也要清除单个标签的 Action
-            if (!additive) singleActions.Clear();
-
 
             while (richTags.Count > 0) {
                 RichTagInfo richTagInfo = richTags.Dequeue();
