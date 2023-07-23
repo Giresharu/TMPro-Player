@@ -465,6 +465,8 @@ namespace TMPPlayer {
 
         }*/
 
+        const string TAG_REGEX_PATTERN = @"<(/?[a-zA-Z0-9\s]+)(?:=(?<value>[^,<>]*)?(?:,(?<value>[^,<>]*)?)*)?>";
+
         (Queue<RichTagInfo> richTagInfos, string text) ValidateRichTags(string text, int offset = 0, bool newline = false) {
             List<RichTagInfo> textTags = new List<RichTagInfo>();
             Stack<int> tagIndices = new Stack<int>();
@@ -476,18 +478,18 @@ namespace TMPPlayer {
             sb.Append(text);
             sb.Append(closeStyle);
 
-            MatchCollection matches = Regex.Matches(sb.ToString(), @"<(/?[a-zA-Z0-9]+ *)[=]*(?<value> *[a-zA-Z0-9.%]+ *)*(?:,(?<value> *[a-zA-Z0-9.%]+ *))*>");
+            MatchCollection matches = Regex.Matches(sb.ToString(), TAG_REGEX_PATTERN);
             int cutSize = 0 - offset;
 
             foreach (Match match in matches) {
                 string tagStr = match.Value;
                 // Debug.Log(tagStr);
-                string effectStr = match.Groups[1].ToString().TrimEnd();
+                string effectStr = match.Groups[1].ToString().Trim();
                 var valuesCaptures = match.Groups[2].Captures;
                 string[] valueStrs = new string[valuesCaptures.Count];
 
                 for (int i = 0; i < valuesCaptures.Count; i++) {
-                    valueStrs[i] = valuesCaptures[i].ToString();
+                    valueStrs[i] = valuesCaptures[i].ToString().Trim();
                 }
 
                 int tagIndex = match.Index; //标签在text中的索引（以第一个字符为准）
@@ -525,10 +527,6 @@ namespace TMPPlayer {
                     richTag.startIndex = tagIndex - cutSize;
                     richTag.endIndex = -1;
 
-                    for (int index = 0; index < valueStrs.Length; index++) {
-                        valueStrs[index] = valueStrs[index].Trim();
-                    }
-
                     richTag.value = valueStrs;
 
                     if (actionInfo.IsPaired) {
@@ -564,7 +562,7 @@ namespace TMPPlayer {
 
                 } else {
                     ActionInfo actionInfo = TMPPlayerRichTagManager.GetActionInfo(richTagInfo.type);
-                    if (!pairedActions.ContainsKey((actionInfo, richTagInfo.value, richTagInfo.nestLayer))) 
+                    if (!pairedActions.ContainsKey((actionInfo, richTagInfo.value, richTagInfo.nestLayer)))
                         pairedActions.Add((actionInfo, richTagInfo.value, richTagInfo.nestLayer), new List<(int start, int end)>());
 
                     pairedActions[(actionInfo, richTagInfo.value, richTagInfo.nestLayer)].Add((richTagInfo.startIndex, richTagInfo.endIndex));

@@ -2,6 +2,13 @@ TMPro-Player
 ===
 [View in English](./CHANGELOG-en.md)
 
+[1.1.5](https://github.com/Giresharu/TMPro-Player/releases/1.1.5)
+---
+
+### 修复
+* 修复了正则不匹配省略靠前参数的问题等匹配问题
+* 修复了执行标签时因省略前置参数而报错的问题
+
 [1.1.4](https://github.com/Giresharu/TMPro-Player/releases/1.1.4)
 ---
 

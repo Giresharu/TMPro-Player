@@ -2,6 +2,13 @@ TMPro-Player
 ===
 [查看中文版本](./CHANGELOG.md)
 
+[1.1.5](https://github.com/Giresharu/TMPro-Player/releases/1.1.5)
+---
+
+### 修复
+* Fixed issues with regular expressions not matching the leading omitted parameters and other matching problems.
+* Fixed errors occurring when executing tags due to the omission of preceding parameters.
+
 [1.1.4](https://github.com/Giresharu/TMPro-Player/releases/1.1.4)
 ---
 

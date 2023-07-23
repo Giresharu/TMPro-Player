@@ -63,7 +63,7 @@ namespace TMPPlayer {
                 } else if (argTypes[i] == typeof(List<(int, int)>)) {
                     args[i] = range;
                     offset++;
-                } else if (i < argStrings.Length + offset) {
+                } else if (i < argStrings.Length + offset && !string.IsNullOrEmpty(argStrings[i - offset])) {
                     args[i] = Convert.ChangeType(argStrings[i - offset], argTypes[i]);
                 } else {
                     args[i] = defaultArgValues[i];
@@ -76,5 +76,5 @@ namespace TMPPlayer {
             return null;
         }
     }
-    
+
 }
