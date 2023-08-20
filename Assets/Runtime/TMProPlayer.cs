@@ -161,7 +161,7 @@ namespace TMPPlayer {
         /// <param name="isAdditive">是否增量更新</param>
         /// <param name="newline">是否另起一行</param>
         public void SetText(string text, bool isAdditive = false, bool newline = false) {
-            if (TextMeshPro == null) TextMeshPro = GetComponent<TextMeshProUGUI>();
+            if (TextMeshPro == null) TextMeshPro = GetComponent<TMP_Text>();
 
             if (!isAdditive) {
 
