@@ -56,13 +56,14 @@ namespace TMPPlayer {
             Debug.Log(this);
             // TMPro_EventManager.TEXT_CHANGED_EVENT.Remove(OnTextChanged);
         }*/
-
+        bool started;
         void Start() {
+            if (started) return;
+
             if (TextMeshPro == null) TextMeshPro = GetComponent<TMP_Text>();
-            if (TextMeshPro.text != null) {
+            if (!string.IsNullOrEmpty(TextMeshPro.text)) {
                 SetText(TextMeshPro.text);
             }
-
         }
 
         void OnDestroy() {
@@ -161,7 +162,11 @@ namespace TMPPlayer {
         /// <param name="isAdditive">是否增量更新</param>
         /// <param name="newline">是否另起一行</param>
         public void SetText(string text, bool isAdditive = false, bool newline = false) {
-            if (TextMeshPro == null) TextMeshPro = GetComponent<TMP_Text>();
+            //TODO 太丑陋了。也需要连带单例的初始化一起修改，将 TMProPlayer.Start 改成 Awake 以避免问题
+            if (!started) {
+                started = true;
+                if (TextMeshPro == null) TextMeshPro = GetComponent<TMP_Text>();
+            }
 
             if (!isAdditive) {
 
@@ -401,8 +406,7 @@ namespace TMPPlayer {
                     // Debug.Log(CurrentChar);
                     float startTime = Time.time;
                     while ((Time.time - startTime) * 1000 < Delay / timeScale && !token.IsCancellationRequested)
-                        // yield return null;
-                        yield return null /*new WaitForEndOfFrame()*/;
+                        yield return null;
 
                     if (token.IsCancellationRequested) {
                         IsTyping = false;
