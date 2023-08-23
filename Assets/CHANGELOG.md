@@ -2,6 +2,16 @@ TMPro-Player
 ===
 [View in English](./CHANGELOG-en.md)
 
+[1.1.6](https://github.com/Giresharu/TMPro-Player/releases/1.1.6)
+---
+
+### 修复
+* 修复了在使用 `TextMeshPro` （非UGUI）时空引用的问题
+* 减少了在实例化 `TextMeshProUGUI` 的同一帧内立刻 `SetText` 导致打字机效果失效的问题。
+
+### 已知 Bug
+* 当 `Canvas` 的 `pixel perfect` 选项设为 true 时，在实例化 `TextMeshProUGUI` 的同一帧内立刻 `SetText` 导致打字机效果仍会失效。
+
 [1.1.5](https://github.com/Giresharu/TMPro-Player/releases/1.1.5)
 ---
 

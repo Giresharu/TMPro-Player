@@ -2,14 +2,23 @@ TMPro-Player
 ===
 [查看中文版本](./CHANGELOG.md)
 
+[1.1.6](https://github.com/Giresharu/TMPro-Player/releases/1.1.6)
+
+### Fixes
+* Fixed an issue with null reference when using `TextMeshPro` (non-UGUI).
+* Reduced the problem where calling `SetText` immediately after instantiating `TextMeshProUGUI` within the same frame would cause the typewriter effect to fail.
+
+### Known Bugs
+* When the `pixel perfect` option of the `Canvas` is set to true, calling `SetText` immediately after instantiating `TextMeshProUGUI` within the same frame will still cause the typewriter effect to fail.
+
 [1.1.5](https://github.com/Giresharu/TMPro-Player/releases/1.1.5)
 ---
 
-### 修复
+### Fixed
 * Fixed issues with regular expressions not matching the leading omitted parameters and other matching problems.
 * Fixed errors occurring when executing tags due to the omission of preceding parameters.
 
-[1.1.4](https://github.com/Giresharu/TMPro-Player/releases/)
+[1.1.4](https://github.com/Giresharu/TMPro-Player/releases/1.1.4)
 ---
 
 ### Fixed
