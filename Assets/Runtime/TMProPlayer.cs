@@ -162,7 +162,7 @@ namespace TMPPlayer {
         /// <param name="isAdditive">是否增量更新</param>
         /// <param name="newline">是否另起一行</param>
         public void SetText(string text, bool isAdditive = false, bool newline = false) {
-            //TODO 太丑陋了。也需要连带单例的初始化一起修改，将 TMProPlayer.Start 改成 Awake 以避免问题
+            //TODO 这里是因为Start的部分是在下一帧的生命周期执行的。所以如果实例化后立刻 SetText 可能会导致 Start 中重复 SetText 。所以要屏蔽。但是这么写太丑陋了。也需要连带单例的初始化一起修改，将 TMProPlayer.Start 改成 Awake 以避免问题。留到 2.0 版本再说吧。
             if (!started) {
                 started = true;
                 if (TextMeshPro == null) TextMeshPro = GetComponent<TMP_Text>();
